@@ -6,6 +6,8 @@ import '../../../../injecter.dart';
 class IntroBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut(() => IntroController(sl()));
+    Get.lazyPut(
+      () => IntroController(sl()),
+    );
   }
 }

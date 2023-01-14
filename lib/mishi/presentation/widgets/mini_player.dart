@@ -167,8 +167,12 @@ class _MiniPlayerState extends State<MiniPlayer>
                                         shape: BoxShape.circle,
                                         color: Colors.white),
                                     child: controller.waitingPlayers.value
-                                        ? const CircularProgressIndicator(
-                                            color: AppColors.primaryColor,
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              color: AppColors.primaryColor,
+                                            ),
                                           )
                                         : Center(
                                             child: AnimatedIcon(

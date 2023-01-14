@@ -6,9 +6,11 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hive_flutter/adapters.dart';
+import 'package:in_app_review/in_app_review.dart';
 import 'package:mishi/mishi/presentation/pages/payment_page.dart';
 import 'package:mishi/mishi/presentation/pages/web/music_detail_web.dart';
 import 'package:mishi/mishi/presentation/pages/web_view.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../../../core/response_classify.dart';
 import '../../domain/entities/categories.dart';
@@ -19,6 +21,7 @@ import '../manager/controllers/music_detail_controller.dart';
 import '../manager/controllers/music_list_controller.dart';
 import '../routes/app_pages.dart';
 import '../utils/app_colors.dart';
+import '../utils/constants.dart';
 import '../utils/enums.dart';
 import '../utils/pretty_print.dart';
 import '../widgets/no_connection_widget.dart';
@@ -277,20 +280,20 @@ class CategoryDescription extends StatelessWidget {
                         ),
                       ),
                     ),
-                    loginController.getCurrentUser() == ""
-                        ? Container()
-                        : SizedBox(
-                            height: 40,
-                            child: ListTile(
-                              title: Text(
-                                loginController.getCurrentUser(),
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w400),
-                              ),
-                            ),
-                          ),
+                    // loginController.getCurrentUser() == ""
+                    //     ? Container()
+                    //     : SizedBox(
+                    //         height: 40,
+                    //         child: ListTile(
+                    //           title: Text(
+                    //             loginController.getCurrentUser(),
+                    //             style: const TextStyle(
+                    //                 color: Colors.white,
+                    //                 fontSize: 14,
+                    //                 fontWeight: FontWeight.w400),
+                    //           ),
+                    //         ),
+                    //       ),
                     !loginController.checkLogin()
                         ? SizedBox(
                             height: 40,
@@ -340,6 +343,27 @@ class CategoryDescription extends StatelessWidget {
                       height: 40,
                       child: ListTile(
                         onTap: () async {
+                          Get.toNamed(AppPages.profile);
+
+                          // Get.snackbar("Cleared", "All cache files cleared");
+                        },
+                        // leading: const Icon(
+                        //   Icons.delete_outline,
+                        //   color: Colors.white,
+                        // ),
+                        title: const Text(
+                          "Profile",
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 40,
+                      child: ListTile(
+                        onTap: () async {
                           Get.toNamed(AppPages.clear_chache);
 
                           // Get.snackbar("Cleared", "All cache files cleared");
@@ -357,29 +381,40 @@ class CategoryDescription extends StatelessWidget {
                         ),
                       ),
                     ),
+                    // SizedBox(
+                    //   height: 40,
+                    //   child: ListTile(
+                    //     onTap: () {
+                    //       Get.dialog(timerDialog());
+                    //     },
+                    //     // leading: const Icon(
+                    //     //   Icons.timer,
+                    //     //   color: Colors.white,
+                    //     // ),
+                    //     title: const Text(
+                    //       "Timer/Fader",
+                    //       style: TextStyle(
+                    //           color: Colors.white,
+                    //           fontSize: 14,
+                    //           fontWeight: FontWeight.w400),
+                    //     ),
+                    //   ),
+                    // ),
                     SizedBox(
                       height: 40,
                       child: ListTile(
-                        onTap: () {
-                          Get.dialog(timerDialog());
+                        onTap: () async {
+                          final InAppReview inAppReview = InAppReview.instance;
+
+                          if (await inAppReview.isAvailable()) {
+                            inAppReview.requestReview();
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content:
+                                        Text("Please try after sometimes")));
+                          }
                         },
-                        // leading: const Icon(
-                        //   Icons.timer,
-                        //   color: Colors.white,
-                        // ),
-                        title: const Text(
-                          "Timer/Fader",
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400),
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      height: 40,
-                      child: ListTile(
-                        onTap: () {},
                         // leading: const Icon(
                         //   Icons.timer,
                         //   color: Colors.white,
@@ -486,220 +521,214 @@ class CategoryDescription extends StatelessWidget {
             height: MediaQuery.of(context).size.height,
             child: Stack(
               children: [
-                if (controller.categoryBox.value != null)
-                  ValueListenableBuilder(
-                      valueListenable:
-                          controller.categoryBox.value!.listenable(),
-                      builder: (context, Box<CategoriesEntity> data, _) {
-                        var item = data.values.where(
-                            (element) => element.displayName == displayName);
+                // if (controller.categoryBox.value != null)
+                ValueListenableBuilder(
+                    valueListenable: controller.categoryBox.value!.listenable(),
+                    builder: (context, Box<CategoriesEntity> data, _) {
+                      var item = data.values.where(
+                          (element) => element.displayName == displayName);
+                      prettyPrint(msg: "item ${item.first.tagName}");
+                      return ValueListenableBuilder(
+                        valueListenable:
+                            controller.musicListBox.value!.listenable(),
+                        builder: (BuildContext context, Box<MusicEntity> data,
+                            Widget? child) {
+                          var items = data.values
+                              .where((element) =>
+                                  element.tag1 == item.toList().first.tagName ||
+                                  element.tag2 == item.toList().first.tagName ||
+                                  element.tag3 == item.toList().first.tagName ||
+                                  element.tag6 == item.toList().first.tagName)
+                              .toList();
+                          return items.isNotEmpty
+                              ? Padding(
+                                  padding: const EdgeInsets.only(top: 0.0),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(top: 26.0),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            // SizedBox(
+                                            //   width: 5,
+                                            // ),
 
-                        return ValueListenableBuilder(
-                          valueListenable:
-                              controller.musicListBox.value!.listenable(),
-                          builder: (BuildContext context, Box<MusicEntity> data,
-                              Widget? child) {
-                            var items = data.values
-                                .where((element) =>
-                                    element.tag1 == item.toList().first.tagName)
-                                .toList();
-                            return items.isNotEmpty
-                                ? Padding(
-                                    padding: const EdgeInsets.only(top: 0.0),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Padding(
-                                          padding:
-                                              const EdgeInsets.only(top: 26.0),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              // SizedBox(
-                                              //   width: 5,
-                                              // ),
-
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                    left: 20.0),
-                                                child: Image.asset(
-                                                  "assets/images/logo.png",
-                                                  width: 184,
-                                                  // height: 100,
-                                                  // fit: BoxFit.c,
-                                                ),
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  left: 20.0),
+                                              child: Image.asset(
+                                                "assets/images/logo.png",
+                                                width: 184,
+                                                // height: 100,
+                                                // fit: BoxFit.c,
                                               ),
-                                              Row(
-                                                children: [
-                                                  SizedBox(
-                                                    width: 28,
-                                                    height: 24,
-                                                    child: StreamBuilder(
-                                                        stream: FirebaseFirestore
-                                                            .instance
-                                                            .collection(
-                                                                'favourites')
-                                                            .snapshots(),
-                                                        builder: (context,
-                                                            AsyncSnapshot<
-                                                                    QuerySnapshot>
-                                                                snapshot) {
-                                                          if (snapshot
-                                                              .hasData) {
-                                                            var items = snapshot
-                                                                .data?.docs
-                                                                .where((element) =>
-                                                                    element.id
-                                                                        .contains(
-                                                                            "${FirebaseAuth.instance.currentUser?.uid}-"));
+                                            ),
+                                            Row(
+                                              children: [
+                                                SizedBox(
+                                                  width: 28,
+                                                  height: 24,
+                                                  child: StreamBuilder(
+                                                      stream: FirebaseFirestore
+                                                          .instance
+                                                          .collection(
+                                                              'favourites')
+                                                          .snapshots(),
+                                                      builder: (context,
+                                                          AsyncSnapshot<
+                                                                  QuerySnapshot>
+                                                              snapshot) {
+                                                        if (snapshot.hasData) {
+                                                          var items = snapshot
+                                                              .data?.docs
+                                                              .where((element) =>
+                                                                  element.id
+                                                                      .contains(
+                                                                          "${FirebaseAuth.instance.currentUser?.uid}-"));
 
-                                                            return items!
-                                                                    .isNotEmpty
-                                                                ? InkWell(
-                                                                    onTap: () {
-                                                                      // Scaffold.of(context).openEndDrawer();
-                                                                      prettyPrint(
-                                                                          msg:
-                                                                              "clicking");
-                                                                      // Navigator.of(context).push(
-                                                                      //     MaterialPageRoute(
-                                                                      //         builder: (context) =>
-                                                                      //             const FavouritesScreen()));
-                                                                      Get.to(() =>
-                                                                          const FavouritesScreen());
-                                                                    },
-                                                                    child: Image
-                                                                        .asset(
-                                                                      "assets/images/heart_filled.png",
-                                                                      width: 33,
-                                                                      height:
-                                                                          29,
-                                                                    ),
-                                                                  )
-                                                                : Image.asset(
-                                                                    "assets/images/heart_unfilled.png",
+                                                          return items!
+                                                                  .isNotEmpty
+                                                              ? InkWell(
+                                                                  onTap: () {
+                                                                    // Scaffold.of(context).openEndDrawer();
+                                                                    prettyPrint(
+                                                                        msg:
+                                                                            "clicking");
+                                                                    // Navigator.of(context).push(
+                                                                    //     MaterialPageRoute(
+                                                                    //         builder: (context) =>
+                                                                    //             const FavouritesScreen()));
+                                                                    Get.to(() =>
+                                                                        const FavouritesScreen());
+                                                                  },
+                                                                  child: Image
+                                                                      .asset(
+                                                                    "assets/images/heart_filled.png",
                                                                     width: 33,
                                                                     height: 29,
-                                                                  );
-                                                          }
-                                                          return Container();
-                                                        }),
-                                                  ),
-                                                  Builder(builder: (context) {
-                                                    return InkWell(
-                                                      onTap: () {
-                                                        Scaffold.of(context)
-                                                            .openEndDrawer();
-                                                      },
-                                                      child: Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(8.0),
-                                                        child: Image.asset(
-                                                          "assets/images/settings.png",
-                                                          fit: BoxFit.cover,
-                                                          width: 35,
-                                                          height: 35,
-                                                        ),
+                                                                  ),
+                                                                )
+                                                              : Image.asset(
+                                                                  "assets/images/heart_unfilled.png",
+                                                                  width: 33,
+                                                                  height: 29,
+                                                                );
+                                                        }
+                                                        return Container();
+                                                      }),
+                                                ),
+                                                Builder(builder: (context) {
+                                                  return InkWell(
+                                                    onTap: () {
+                                                      Scaffold.of(context)
+                                                          .openEndDrawer();
+                                                    },
+                                                    child: Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              8.0),
+                                                      child: Image.asset(
+                                                        "assets/images/settings.png",
+                                                        fit: BoxFit.cover,
+                                                        width: 35,
+                                                        height: 35,
                                                       ),
-                                                    );
-                                                  }),
-                                                ],
-                                              )
-                                            ],
-                                          ),
+                                                    ),
+                                                  );
+                                                }),
+                                              ],
+                                            )
+                                          ],
                                         ),
-                                        Padding(
-                                          padding:
-                                              const EdgeInsets.only(left: 15.0),
-                                          child: Row(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.center,
-                                            children: [
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                    top: 8.0,
-                                                    left: 12,
-                                                    bottom: 15),
-                                                child: Text(
-                                                  item.first.displayName,
-                                                  style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 20,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
+                                      ),
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(left: 15.0),
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  top: 8.0,
+                                                  left: 12,
+                                                  bottom: 15),
+                                              child: Text(
+                                                item.first.displayName,
+                                                style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 20,
+                                                    fontWeight:
+                                                        FontWeight.bold),
                                               ),
-                                              const SizedBox(
-                                                width: 10,
-                                              ),
-                                            ],
-                                          ),
+                                            ),
+                                            const SizedBox(
+                                              width: 10,
+                                            ),
+                                          ],
                                         ),
-                                        SizedBox(
-                                          height: MediaQuery.of(context)
-                                                  .size
-                                                  .height *
-                                              0.32,
-                                          child: Scrollbar(
-                                            // isAlwaysShown: true,
-                                            thumbVisibility: true,
-                                            thickness: 5,
-                                            radius: const Radius.circular(
-                                                20), //corner radius of scrollbar
-                                            scrollbarOrientation:
-                                                ScrollbarOrientation.right,
-                                            child: SingleChildScrollView(
-                                              physics:
-                                                  const BouncingScrollPhysics(),
-                                              child: Padding(
-                                                padding: const EdgeInsets.only(
-                                                    left: 27.0, right: 12),
-                                                child: Text(
-                                                  item.first.tagDescription,
-                                                  // maxLines: 5,
-                                                  style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 13),
-                                                ),
+                                      ),
+                                      SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.height *
+                                                0.32,
+                                        child: Scrollbar(
+                                          // isAlwaysShown: true,
+                                          thumbVisibility: true,
+                                          thickness: 5,
+                                          radius: const Radius.circular(
+                                              20), //corner radius of scrollbar
+                                          scrollbarOrientation:
+                                              ScrollbarOrientation.right,
+                                          child: SingleChildScrollView(
+                                            physics:
+                                                const BouncingScrollPhysics(),
+                                            child: Padding(
+                                              padding: const EdgeInsets.only(
+                                                  left: 27.0, right: 12),
+                                              child: Text(
+                                                item.first.tagDescription,
+                                                // maxLines: 5,
+                                                style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 13),
                                               ),
                                             ),
                                           ),
                                         ),
-                                        const SizedBox(
-                                          height: 30,
-                                        ),
-                                        SizedBox(
-                                          height: 200,
-                                          child: ListView.builder(
-                                              shrinkWrap: true,
-                                              padding: const EdgeInsets.only(
-                                                  left: 25),
-                                              itemCount: items.length,
-                                              scrollDirection: Axis.horizontal,
-                                              physics:
-                                                  const BouncingScrollPhysics(),
-                                              itemBuilder: (context, index) {
-                                                return HomeListItem(
-                                                  paid: items[index]
-                                                          .musicPremium ??
-                                                      false,
-                                                  thumbnail: items[index]
-                                                      .smallImageUrl,
-                                                  description: items[index]
-                                                      .musicDescription,
-                                                  onTap: () {
-                                                    if (items[index]
-                                                            .musicPremium ??
-                                                        false) {
-                                                      Get.to(() =>
-                                                          PaymentScreen(
-                                                            entity:
-                                                                items[index],
-                                                          ));
-                                                    } else {
+                                      ),
+                                      const SizedBox(
+                                        height: 30,
+                                      ),
+                                      SizedBox(
+                                        height: 200,
+                                        child: ListView.builder(
+                                            shrinkWrap: true,
+                                            padding:
+                                                const EdgeInsets.only(left: 25),
+                                            itemCount: items.length,
+                                            scrollDirection: Axis.horizontal,
+                                            physics:
+                                                const BouncingScrollPhysics(),
+                                            itemBuilder: (context, index) {
+                                              return HomeListItem(
+                                                paid:
+                                                    items[index].musicPremium ??
+                                                        false,
+                                                thumbnail:
+                                                    items[index].smallImageUrl,
+                                                description: items[index]
+                                                    .musicDescription,
+                                                onTap: () async {
+                                                  if (items[index]
+                                                          .musicPremium ==
+                                                      true) {
+                                                    if (await IsProUser()) {
                                                       Get.to(
                                                         () => kIsWeb
                                                             ? MusicDetailWeb(
@@ -711,23 +740,58 @@ class CategoryDescription extends StatelessWidget {
                                                                     items[
                                                                         index]),
                                                       );
+                                                    } else {
+                                                      var offerings =
+                                                          await Purchases
+                                                              .getOfferings();
+                                                      if (offerings.current !=
+                                                          null) {
+                                                        Get.to(() =>
+                                                            PaymentScreen(
+                                                              entity:
+                                                                  items[index],
+                                                              offering:
+                                                                  offerings
+                                                                      .current!,
+                                                            ));
+                                                      } else {
+                                                        ScaffoldMessenger.of(
+                                                                context)
+                                                            .showSnackBar(
+                                                                const SnackBar(
+                                                                    content: Text(
+                                                                        "Somthing went wrong.")));
+                                                      }
                                                     }
-                                                  },
-                                                  title: items[index].musicName,
-                                                  musicNew:
-                                                      items[index].musicNew ??
-                                                          false,
-                                                  id: items[index].musicId,
-                                                );
-                                              }),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                : Container();
-                          },
-                        );
-                      }),
+                                                  } else {
+                                                    Get.to(
+                                                      () => kIsWeb
+                                                          ? MusicDetailWeb(
+                                                              musicEntity:
+                                                                  items[index])
+                                                          : MusicDetail(
+                                                              musicEntity:
+                                                                  items[index]),
+                                                    );
+                                                  }
+                                                },
+                                                title: items[index].musicName,
+                                                musicNew:
+                                                    items[index].musicNew ??
+                                                        false,
+                                                id: items[index].musicId,
+                                              );
+                                            }),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : Container(
+                                  child: Text("ERRor"),
+                                );
+                        },
+                      );
+                    }),
                 Positioned(
                     top: 0,
                     left: 0,

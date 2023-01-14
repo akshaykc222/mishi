@@ -4,6 +4,7 @@ import 'music_entity.dart';
 
 class HomeMusic extends Equatable {
   final String? tag;
+
   final int? tagOrder;
   final List<MusicEntity> data;
 

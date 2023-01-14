@@ -8,4 +8,5 @@ class AppPages {
   static const payment = "/payment";
   static const clear_chache = "/clear_cache";
   static const favourites = "/favourites";
+  static const profile = "/profile";
 }

@@ -53,13 +53,23 @@ class MusicDetailController extends GetxController {
     selectedMusic.value = entity;
   }
 
+  final tempCompositionList = <CompositionEntity>[].obs;
   changeSelectedMusic(MusicEntity entity) {
     selectedMusic.value = entity;
+    tempCompositionList.clear();
+    tempCompositionList.addAll(compositionList);
     playerStatusUseCase.call(PlayerStatus(
         musicName: entity.musicName,
         description: entity.musicDescription,
         image: entity.smallImageUrl,
         status: AudioStatus.downloading));
+  }
+
+  changeListValues() {
+    prettyPrint(msg: "Calling");
+    compositionList.clear();
+    compositionList.addAll(tempCompositionList);
+    update();
   }
 
   final compositionList = <CompositionEntity>[].obs;
@@ -131,7 +141,8 @@ class MusicDetailController extends GetxController {
     if (recursive == true) {
     } else {
       compositionList.clear();
-      await getAllCompositions(musicEntity.musicId, musicEntity.musicName);
+      await getAllCompositions(musicEntity.musicId, musicEntity.musicName,
+          download: true);
     }
 
     if (kIsWeb) {
@@ -157,7 +168,7 @@ class MusicDetailController extends GetxController {
         playerStatus.value = AudioStatus.playing;
         compositionAudioPlayersJustAudio[index]
             .setVolume(compositionList[index].instrumentVolumeDefault * 0.1);
-        compositionAudioPlayersJustAudio[index].setLoopMode(audio.LoopMode.one);
+        compositionAudioPlayersJustAudio[index].setLoopMode(audio.LoopMode.all);
         // playerStatusUseCase.call(PlayerStatus(
         //     musicName: selectedMusic.value?.musicName ?? "",
         //     description: selectedMusic.value?.musicDescription ?? "",
@@ -194,7 +205,7 @@ class MusicDetailController extends GetxController {
           compositionAudioPlayersJustAudio[index].setFilePath(audioFile.path);
           compositionAudioPlayersJustAudio[index].play();
           compositionAudioPlayersJustAudio[index]
-              .setLoopMode(audio.LoopMode.one);
+              .setLoopMode(audio.LoopMode.all);
           compositionAudioPlayersJustAudio[index]
               .setVolume(compositionList[index].instrumentVolumeDefault * 0.01);
         });
@@ -259,7 +270,7 @@ class MusicDetailController extends GetxController {
     playerStatusUseCase.call(data);
   }
 
-  getAllCompositions(String id, String musicName) async {
+  getAllCompositions(String id, String musicName, {bool? download}) async {
     compositionResponse.value = ResponseClassify.loading();
     try {
       compositionResponse.value =
@@ -275,7 +286,7 @@ class MusicDetailController extends GetxController {
       //     status: AudioStatus.downloading));
       prettyPrint(msg: "composition list length ${compositionList.length}");
       waitingPlayers.value = false;
-      if (!kIsWeb) {
+      if (!kIsWeb && download == true) {
         downloadAllCompositions(musicName);
       } else {}
     } catch (e) {
@@ -314,6 +325,11 @@ class MusicDetailController extends GetxController {
             // }
             compositionAudioPlayersJustAudio[index].setVolume(value);
             model.instrumentVolumeDefault = defaultVolume.value;
+            if (tempCompositionList.contains(model)) {
+              var data =
+                  tempCompositionList.firstWhere((element) => element == model);
+              data.instrumentVolumeDefault = defaultVolume.value;
+            }
             compositionResponse.refresh();
           },
           value: defaultVolume.value * 0.01,
@@ -333,16 +349,16 @@ class MusicDetailController extends GetxController {
       var temFile = File("${tempDir.path}/s${data[index].id}");
       if (await temFile.exists()) {
         soundAudioPlayers[index].setFilePath(temFile.path);
-        soundAudioPlayers[index].setLoopMode(audio.LoopMode.one);
+        soundAudioPlayers[index].setLoopMode(audio.LoopMode.all);
         soundAudioPlayers[index].play();
 
         soundAudioPlayers[index].setVolume(0.0);
       } else {
-        Future.delayed(Duration(seconds: 20), () async {
+        Future.delayed(const Duration(seconds: 20), () async {
           if (await temFile.exists()) {
             soundAudioPlayers[index].setFilePath(temFile.path);
             soundAudioPlayers[index].play();
-            soundAudioPlayers[index].setLoopMode(audio.LoopMode.one);
+            soundAudioPlayers[index].setLoopMode(audio.LoopMode.all);
             soundAudioPlayers[index].setVolume(0.0);
           }
         });
@@ -545,13 +561,23 @@ class MusicDetailController extends GetxController {
       var d = await soundListUseCase.call(NoParams());
       var tempDir = await getTemporaryDirectory();
 
-      d.forEach((element) async {
+      for (var element in d) {
         var temFile = File("${tempDir.path}/s${element.id}");
+        prettyPrint(msg: "tempFile exists ${await temFile.exists()}");
         if (await temFile.exists()) {
+          GetStorage storage = GetStorage();
+          String? e = storage.read('lastDate');
+          prettyPrint(msg: "e $e == ${element.updatedDate.toIso8601String()}");
+          if (e.toString() != element.updatedDate.toIso8601String()) {
+            prettyPrint(msg: "this part is wrking");
+            downloadSoundAudio(entity: element);
+          }
         } else {
+          GetStorage storage = GetStorage();
+          storage.write("lastDate", element.updatedDate.toIso8601String());
           downloadSoundAudio(entity: element);
         }
-      });
+      }
     } catch (e) {
       prettyPrint(msg: e.toString());
     }
@@ -583,7 +609,7 @@ class MusicDetailController extends GetxController {
       case "infinite":
         return 0;
       case "10 mins":
-        return 60;
+        return 600;
       case "20 mins":
         return 1200;
       case "30 mins":
@@ -605,6 +631,7 @@ class MusicDetailController extends GetxController {
 
   writeTiming(String data) {
     var storage = GetStorage();
+    prettyPrint(msg: "writing time${data}");
     storage.write('timer', data);
     getTiming();
   }
@@ -660,7 +687,7 @@ class MusicDetailController extends GetxController {
 
   void startTimer(int timerDuration) {
     int len = getTimerinSeconds();
-    double fadeTime = len * 0.15;
+    double fadeTime = len * 0.30;
     if (_timer.value != null) {
       _timer.value?.cancel();
     }
@@ -677,9 +704,10 @@ class MusicDetailController extends GetxController {
           stopAllPlayers();
           timer.cancel();
         } else {
-          prettyPrint(msg: "starting timer $fadeTime");
           if (getToogleFader()) {
-            if (start.value < fadeTime) {
+            prettyPrint(msg: "starting timer $fadeTime");
+            if (start.value < 15) {
+              prettyPrint(msg: "fade time wrking $fadeTime");
               changeAllPlayerVolumeByFade(fadeTime);
             }
           }
@@ -691,12 +719,13 @@ class MusicDetailController extends GetxController {
 
   changeAllPlayerVolumeByFade(double fadeLen) {
     for (var player in compositionAudioPlayersJustAudio) {
-      var v = player.volume / fadeLen;
-      player.setVolume(player.volume - v);
+      // var v = (player.volume / 5);
+      // prettyPrint(msg: "decresing length $v");
+      player.setVolume(player.volume * 0.75);
     }
     for (var player in soundAudioPlayers) {
-      var v = player.volume / fadeLen;
-      player.setVolume(player.volume - v);
+      // var v = (player.volume / 5);
+      player.setVolume(player.volume * 0.75);
     }
   }
 
@@ -724,13 +753,13 @@ class MusicDetailController extends GetxController {
 
       if (per == 100) {
         prettyPrint(msg: "added store model ${entity.soundName}");
-        hiveService.addBoxes<StoreModel>([
-          StoreModel(
-            musicName: "Sounds",
-            storeLoc: temFile.path,
-            totSize: temFile.lengthSync().toDouble(),
-          )
-        ], AppBoxNames.cache_box);
+        // hiveService.addBoxes<StoreModel>([
+        //   StoreModel(
+        //     musicName: "Sounds",
+        //     storeLoc: temFile.path,
+        //     totSize: temFile.lengthSync().toDouble(),
+        //   )
+        // ], AppBoxNames.cache_box);
       }
       return s;
     }).pipe(tempWrite);

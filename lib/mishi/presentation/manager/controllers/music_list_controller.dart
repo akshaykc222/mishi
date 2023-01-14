@@ -39,20 +39,27 @@ class MusicListController extends GetxController {
   final haveInternetConnection = true.obs;
 
   final isLoading = false.obs;
-  final responseData = ResponseClassify<Stream<MusicEntity?>>.loading().obs;
+  final responseData = ResponseClassify<List<MusicEntity?>>.loading().obs;
   final responseList = <MusicEntity>[].obs;
   final tempData = Rxn<List<HomeMusic>>();
   final homeData = Rxn<List<HomeMusic>>();
   final tagList = <CategoriesEntity>[].obs;
   final tagResponseData =
-      ResponseClassify<Stream<CategoriesEntity?>>.loading().obs;
+      ResponseClassify<List<CategoriesEntity?>>.loading().obs;
   processData(List<HomeMusic> data) {
     homeData.value = [];
     for (var element in data) {
-      var tempList = responseList.where((e) => element.tag == e.tag1).toList();
-      debugPrint("tag count ${tagResponseData.value.data?.length}");
+      var tempList = responseList
+          .where((e) =>
+              element.tag == e.tag1 ||
+              element.tag == e.tag2 ||
+              element.tag == e.tag3 ||
+              element.tag == e.tag6)
+          .toList();
+      // debugPrint("tag count ${tagResponseData.value.data?.length}");
       List<CategoriesEntity>? displayName =
           tagList.where((e) => e.tagName == element.tag).toList();
+      prettyPrint(msg: "request data ${element.tag} data ${tempList.length}");
       if (displayName.isNotEmpty) {
         homeData.value?.add(
             HomeMusic(tag: displayName.first.displayName, data: tempList));
@@ -61,6 +68,12 @@ class MusicListController extends GetxController {
       }
       debugPrint("home data length ${homeData.value?.length}");
     }
+
+    //this part is for delete
+
+    homeData.value?.forEach((element) {
+      prettyPrint(msg: "#1010 ${element.tag} ${element.data.length}");
+    });
   }
 
   getAllTags() async {
@@ -69,17 +82,17 @@ class MusicListController extends GetxController {
       tagResponseData.value =
           ResponseClassify.completed(await tagListUseCase.call(NoParams()));
 
-      tagResponseData.value.data?.listen((data) {
-        prettyPrint(msg: "getting tag list $data");
-        if (data != null) {
-          if (tagList.contains(data)) {
-            tagList.remove(data);
-            tagList.add(data);
-          } else {
-            tagList.add(data);
-          }
-        }
-      });
+      // tagResponseData.value.data?.listen((data) {
+      //   prettyPrint(msg: "getting tag list $data");
+      //   if (data != null) {
+      //     if (tagList.contains(data)) {
+      //       tagList.remove(data);
+      //       tagList.add(data);
+      //     } else {
+      //       tagList.add(data);
+      //     }
+      //   }
+      // });
     } catch (e) {
       prettyPrint(msg: "error =>$e");
       tagResponseData.value = ResponseClassify.error(e.toString());
@@ -93,32 +106,37 @@ class MusicListController extends GetxController {
     isLoading.value = true;
     await getAllTags();
     tempData.value = [];
-    responseData.value = ResponseClassify<Stream<MusicEntity?>>.loading();
+    responseData.value = ResponseClassify<List<MusicEntity?>>.loading();
     if (tag == null) {
       try {
-        responseData.value = ResponseClassify<Stream<MusicEntity?>>.completed(
+        responseData.value = ResponseClassify<List<MusicEntity?>>.completed(
             await musicListUseCase.call("All"));
-        responseData.value.data?.listen((data) {
-          prettyPrint(msg: "music List $data");
-          if (data != null) {
-            if (responseList.contains(data)) {
-              responseList.remove(data);
-              responseList.add(data);
-            } else {
-              responseList.add(data);
-            }
-            if (!tempData.value!.contains(HomeMusic(
-              tag: data.tag1,
-              data: const [],
-            ))) {
-              tempData.value?.add(HomeMusic(tag: data.tag1, data: const []));
-            }
-          }
-
-          processData(tempData.value ?? []);
-        });
+        // responseData.value.data?.listen((data) {
+        //   prettyPrint(msg: "music List $data");
+        //   if (data != null) {
+        //     if (responseList.contains(data)) {
+        //       responseList.remove(data);
+        //       responseList.add(data);
+        //     } else {
+        //       responseList.add(data);
+        //     }
+        //     List<String> tempTags = data.allTags.split(",");
+        //
+        //     for (var element in tempTags) {
+        //       prettyPrint(msg: "TagUnique $element");
+        //       if (!tempData.value!.contains(HomeMusic(
+        //         tag: element,
+        //         data: const [],
+        //       ))) {
+        //         tempData.value?.add(HomeMusic(tag: element, data: const []));
+        //       }
+        //     }
+        //   }
+        //
+        //   processData(tempData.value ?? []);
+        // });
       } catch (e) {
-        print(e);
+        // print(e);
         responseData.value = ResponseClassify.error(e.toString());
       }
     } else {
@@ -128,9 +146,9 @@ class MusicListController extends GetxController {
         responseData.value.data?.forEach((i) {
           if (!tempData.value!.contains(HomeMusic(
             tag: i?.tag1,
-            data: [],
+            data: const [],
           ))) {
-            tempData.value?.add(HomeMusic(tag: i?.tag1, data: []));
+            tempData.value?.add(HomeMusic(tag: i?.tag1, data: const []));
           }
         });
       } catch (e) {
@@ -144,7 +162,7 @@ class MusicListController extends GetxController {
     if (connectionCheckUseCase != null) {
       var data = connectionCheckUseCase!.call(NoParams());
       data.listen((result) {
-        print("result $result");
+        // print("result $result");
         if (result == InternetConnectionStatus.disconnected) {
           // Get.snackbar("No Internet", "Please check your connection",
           //     isDismissible: false, snackPosition: SnackPosition.TOP);

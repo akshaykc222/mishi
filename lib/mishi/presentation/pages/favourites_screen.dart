@@ -29,44 +29,77 @@ class _FavouritesScreenState extends State<FavouritesScreen> {
       ], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
       child: Scaffold(
         backgroundColor: Colors.transparent,
+        appBar: PreferredSize(
+            preferredSize: Size(MediaQuery.of(context).size.width, 90),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 8.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      IconButton(
+                          onPressed: () {
+                            Get.back();
+                          },
+                          icon: const Icon(
+                            Icons.arrow_back,
+                            color: Colors.white,
+                            size: 30,
+                          )),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 0.0, top: 0),
+                        child: Image.asset(
+                          "assets/images/logo.png",
+                          width: 184,
+                          height: 100,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            )),
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.only(top: 26.0),
             child: Column(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // SizedBox(
-                    //   width: 5,
-                    // ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 27.0),
-                      child: Image.asset(
-                        "assets/images/logo.png",
-                        width: 184,
-                        height: 100,
-                        fit: BoxFit.fill,
-                      ),
-                    ),
-                    //     // Builder(builder: (context) {
-                    //     //   return InkWell(
-                    //     //     onTap: () {
-                    //     //       Scaffold.of(context).openEndDrawer();
-                    //     //     },
-                    //     //     child: Padding(
-                    //     //       padding: const EdgeInsets.all(8.0),
-                    //     //       child: Image.asset(
-                    //     //         "assets/images/settings.png",
-                    //     //         fit: BoxFit.cover,
-                    //     //         width: 35,
-                    //     //         height: 35,
-                    //     //       ),
-                    //     //     ),
-                    //     //   );
-                    //     // })
-                  ],
-                ),
+                // Row(
+                //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                //   children: [
+                //     // SizedBox(
+                //     //   width: 5,
+                //     // ),
+                //     Padding(
+                //       padding: const EdgeInsets.only(left: 27.0),
+                //       child: Image.asset(
+                //         "assets/images/logo.png",
+                //         width: 184,
+                //         height: 100,
+                //         fit: BoxFit.fill,
+                //       ),
+                //     ),
+                //     //     // Builder(builder: (context) {
+                //     //     //   return InkWell(
+                //     //     //     onTap: () {
+                //     //     //       Scaffold.of(context).openEndDrawer();
+                //     //     //     },
+                //     //     //     child: Padding(
+                //     //     //       padding: const EdgeInsets.all(8.0),
+                //     //     //       child: Image.asset(
+                //     //     //         "assets/images/settings.png",
+                //     //     //         fit: BoxFit.cover,
+                //     //     //         width: 35,
+                //     //     //         height: 35,
+                //     //     //       ),
+                //     //     //     ),
+                //     //     //   );
+                //     //     // })
+                //   ],
+                // ),
                 Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
                   Padding(
                     padding:
@@ -107,28 +140,41 @@ class _FavouritesScreenState extends State<FavouritesScreen> {
                                 (element) => element.get('favourite') == true);
                             prettyPrint(msg: "items leng ${items!.length}");
 
-                            return ListView.builder(
-                                padding: const EdgeInsets.only(left: 27),
-                                itemCount: filterItems?.length,
-                                scrollDirection: Axis.horizontal,
-                                itemBuilder: (context, index) {
-                                  var model = MusicModel.fromJson(filterItems!
-                                      .toList()[index]
-                                      .get('model'));
-                                  return HomeListItem(
-                                    thumbnail: model.smallImageUrl,
-                                    description: model.musicDescription,
-                                    onTap: () => Get.to(() => MusicDetail(
-                                          musicEntity: model,
-                                        )),
-                                    title: model.musicName,
-                                    paid: model.musicPremium ?? false,
-                                    musicNew: model.musicNew ?? false,
-                                    id: model.musicId,
-                                  );
-                                });
+                            return filterItems == null || filterItems.isEmpty
+                                ? const Center(
+                                    child: Text(
+                                      "No Favourites",
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    padding: const EdgeInsets.only(left: 27),
+                                    itemCount: filterItems.length,
+                                    scrollDirection: Axis.horizontal,
+                                    itemBuilder: (context, index) {
+                                      var model = MusicModel.fromJson(
+                                          filterItems!
+                                              .toList()[index]
+                                              .get('model'));
+                                      return HomeListItem(
+                                        thumbnail: model.smallImageUrl,
+                                        description: model.musicDescription,
+                                        onTap: () => Get.to(() => MusicDetail(
+                                              musicEntity: model,
+                                            )),
+                                        title: model.musicName,
+                                        paid: model.musicPremium ?? false,
+                                        musicNew: model.musicNew ?? false,
+                                        id: model.musicId,
+                                      );
+                                    });
                           } else {
-                            return const CircularProgressIndicator();
+                            return const Center(
+                              child: SizedBox(
+                                  width: 10,
+                                  height: 10,
+                                  child: CircularProgressIndicator()),
+                            );
                           }
                         }))
               ],

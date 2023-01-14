@@ -103,7 +103,7 @@ class ClearCache extends StatelessWidget {
                               padding: EdgeInsets.only(
                                   left: 20.0, right: 20, bottom: 60),
                               child: Text(
-                                "All music played is automatically stored on the device for offline use.clicking up on delete will remove a song and clear the space.",
+                                "All music played is automatically stored on the device for offline use. Clicking up on delete will remove a song and clear the space.",
                                 style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.normal,
@@ -174,14 +174,14 @@ class CacheItem extends StatelessWidget {
                           it.deleteAt(key);
                         }
                       });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("File deleted")));
                     } catch (e) {
                       prettyPrint(msg: e.toString());
                       // ScaffoldMessenger.of(context)
                       //     .showSnackBar(SnackBar(content: Text(e.toString())));
                     }
                   }
+                  // ScaffoldMessenger.of(context).showSnackBar(
+                  //     const SnackBar(content: Text("File deleted")));
                 },
                 style: ElevatedButton.styleFrom(
                     elevation: 0,

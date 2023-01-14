@@ -35,6 +35,7 @@ import 'core/api_provider.dart';
 import 'core/hive_service.dart';
 import 'mishi/data/models/categories_model.dart';
 import 'mishi/domain/repositories/connection_repository.dart';
+import 'mishi/presentation/utils/app_data.dart';
 
 final sl = GetIt.instance;
 Future<void> init() async {
@@ -90,6 +91,7 @@ Future<void> init() async {
   }
 
   sl.registerLazySingleton(() => GetStorage());
+  sl.registerLazySingleton<AppData>(() => AppData());
   //hive
   Hive.registerAdapter(CategoryModelAdapter());
   Hive.registerAdapter(MusicModelAdapter());

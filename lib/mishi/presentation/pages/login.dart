@@ -225,7 +225,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 height: 20,
               ),
               Padding(
-                padding: const EdgeInsets.only(left: 30.0),
+                padding: const EdgeInsets.only(left: 40.0),
                 child: Row(
                   children: const [
                     Text(
@@ -242,7 +242,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 height: 20,
               ),
               SizedBox(
-                width: 300,
+                width: MediaQuery.of(context).size.width * 0.8,
                 height: 50,
                 child: ElevatedButton(
                     onPressed: () {
@@ -262,7 +262,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 height: 20,
               ),
               SizedBox(
-                width: 300,
+                width: MediaQuery.of(context).size.width * 0.8,
                 height: 50,
                 child: ElevatedButton(
                     onPressed: () async {
@@ -284,7 +284,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                         const SizedBox(
                           width: 10,
                         ),
-                        const Text("Login with G-mail")
+                        const Text("Login with Gmail")
                       ],
                     )),
               ),
@@ -292,7 +292,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 height: 20,
               ),
               SizedBox(
-                width: 300,
+                width: MediaQuery.of(context).size.width * 0.8,
                 height: 50,
                 child: ElevatedButton(
                     onPressed: () {
@@ -316,7 +316,11 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 height: 30,
               ),
               TextButton(
-                  onPressed: () => controller.skip(), child: const Text("Skip"))
+                  onPressed: () => controller.skip(),
+                  child: const Text(
+                    "Skip",
+                    style: TextStyle(color: Colors.white),
+                  ))
             ],
           ),
         )),

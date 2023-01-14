@@ -13,11 +13,13 @@ import 'package:mishi/mishi/presentation/pages/splash_screen.dart';
 import 'package:mishi/mishi/presentation/pages/web/web_home.dart';
 import 'package:mishi/mishi/presentation/routes/app_pages.dart';
 
+import '../pages/subscription_details.dart';
+
 var appRoutes = [
   GetPage(
       name: AppPages.splash,
       page: () => const SplashScreen(),
-      bindings: [SplashBinder(), MusicListBinding()]),
+      bindings: [SplashBinder(), MusicListBinding(), LoginBinding()]),
   GetPage(
       name: AppPages.home,
       page: () => kIsWeb ? const WebHome() : const HomeScreen(),
@@ -42,6 +44,10 @@ var appRoutes = [
       name: AppPages.favourites,
       page: () => const FavouritesScreen(),
       bindings: [MusicListBinding()]),
+  GetPage(
+    name: AppPages.profile,
+    page: () => const SubscriptionDetails(),
+  ),
   // GetPage(
   //     name: AppPages.musicDetail,
   //     page: () => MusicDetail(musicEntity: musicEntity))

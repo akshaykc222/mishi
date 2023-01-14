@@ -32,10 +32,10 @@ class _MotionImageScreenState extends State<MotionImageScreen> {
     _controller.setVolume(0);
 
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Double tap any where to exit")));
-    });
+    // WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //       const SnackBar(content: Text("Double tap any where to exit")));
+    // });
   }
 
   @override
@@ -62,6 +62,11 @@ class _MotionImageScreenState extends State<MotionImageScreen> {
             return GestureDetector(
               onDoubleTap: () {
                 Get.back();
+              },
+              onTap: () {
+                ScaffoldMessenger.of(context).clearSnackBars();
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text("Double tap anywhere to exit")));
               },
               child: SizedBox(
                 width: MediaQuery.of(context).size.width,

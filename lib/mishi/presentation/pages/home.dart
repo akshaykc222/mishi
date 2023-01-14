@@ -7,6 +7,8 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hive_flutter/adapters.dart';
+import 'package:in_app_review/in_app_review.dart';
+import 'package:in_app_update/in_app_update.dart';
 import 'package:mishi/core/response_classify.dart';
 import 'package:mishi/mishi/data/models/music_model.dart';
 import 'package:mishi/mishi/domain/entities/categories.dart';
@@ -24,7 +26,11 @@ import 'package:mishi/mishi/presentation/routes/app_pages.dart';
 import 'package:mishi/mishi/presentation/utils/app_colors.dart';
 import 'package:mishi/mishi/presentation/utils/pretty_print.dart';
 import 'package:mishi/mishi/presentation/widgets/no_connection_widget.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 
+import '../../../core/hive_service.dart';
+import '../../data/app_remote_routes.dart';
+import '../../domain/entities/player_status.dart';
 import '../manager/bindings/intro_binding.dart';
 import '../utils/constants.dart';
 import '../utils/enums.dart';
@@ -45,7 +51,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final musicController = Get.find<MusicDetailController>();
   @override
   void initState() {
-    addProUser();
+    // addProUser();
+    updateApp();
     var box = GetStorage();
     if (box.hasData("login_data")) {
       MusicEntity entity = MusicModel.fromJson(box.read("login_data"));
@@ -55,6 +62,32 @@ class _HomeScreenState extends State<HomeScreen> {
     // MediaNotificationx.showNotificationManager(
     //     title: "title", author: "author", isPlaying: true);
     super.initState();
+  }
+
+  updateApp() {
+    try {
+      InAppUpdate.checkForUpdate().then((updateInfo) {
+        if (updateInfo.updateAvailability ==
+            UpdateAvailability.updateAvailable) {
+          if (updateInfo.immediateUpdateAllowed) {
+            // Perform immediate update
+            InAppUpdate.performImmediateUpdate().then((appUpdateResult) {
+              if (appUpdateResult == AppUpdateResult.success) {
+                //App Update successful
+              }
+            });
+          } else if (updateInfo.flexibleUpdateAllowed) {
+            //Perform flexible update
+            InAppUpdate.startFlexibleUpdate().then((appUpdateResult) {
+              if (appUpdateResult == AppUpdateResult.success) {
+                //App Update successful
+                InAppUpdate.completeFlexibleUpdate();
+              }
+            });
+          }
+        }
+      });
+    } catch (e) {}
   }
 
   @override
@@ -82,31 +115,35 @@ class _HomeScreenState extends State<HomeScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 15.0),
-                            child: const Text(
+                          const Padding(
+                            padding: EdgeInsets.only(left: 15.0),
+                            child: Text(
                               "Timer/Fader",
                               style:
                                   TextStyle(fontSize: 18, color: Colors.white),
                             ),
                           ),
-                          Row(
-                            children: [
-                              const Text(
-                                "Fade\nout",
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 16),
-                              ),
-                              Switch(
-                                  inactiveTrackColor: Colors.white70,
-                                  activeColor: Colors.green,
-                                  activeTrackColor: Colors.green,
-                                  value: musicController.toogleFader.value,
-                                  onChanged: (val) {
-                                    musicController.changeToogleFader(val);
-                                  }),
-                            ],
-                          )
+                          musicController.timingValue.value == "infinite"
+                              ? Container()
+                              : Row(
+                                  children: [
+                                    const Text(
+                                      "Fade\nout",
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: 16),
+                                    ),
+                                    Switch(
+                                        inactiveTrackColor: Colors.white70,
+                                        activeColor: Colors.green,
+                                        activeTrackColor: Colors.green,
+                                        value:
+                                            musicController.toogleFader.value,
+                                        onChanged: (val) {
+                                          musicController
+                                              .changeToogleFader(val);
+                                        }),
+                                  ],
+                                )
                         ],
                       ),
                       const Padding(
@@ -130,8 +167,29 @@ class _HomeScreenState extends State<HomeScreen> {
                               onTap: () async {
                                 await musicController
                                     .writeTiming(timingList[index]);
-                                musicController.startTimer(
-                                    musicController.getTimerinSeconds());
+                                if (timingList[index] == "infinite") {
+                                  musicController.pauseTimer();
+                                  musicController.start.value = 0;
+                                } else {
+                                  var hiveService = HiveService();
+                                  var t =
+                                      await hiveService.getBox<PlayerStatus>(
+                                          boxName: AppBoxNames.playerBox);
+                                  if (t.values.isEmpty) {
+                                    musicController.getTimerinSeconds();
+                                  } else {
+                                    var td = t.values.first;
+                                    if (td.status == AudioStatus.playing) {
+                                      prettyPrint(msg: "Restoring values");
+                                      musicController.startTimer(
+                                          musicController.getTimerinSeconds());
+                                    } else {
+                                      prettyPrint(msg: "Not Restoring values");
+                                      musicController.getTimerinSeconds();
+                                    }
+                                  }
+                                }
+
                                 Get.back();
                               },
                               child: Text(
@@ -197,20 +255,20 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ),
-                    loginController.getCurrentUser() == ""
-                        ? Container()
-                        : SizedBox(
-                            height: 40,
-                            child: ListTile(
-                              title: Text(
-                                loginController.getCurrentUser(),
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w400),
-                              ),
-                            ),
-                          ),
+                    // loginController.getCurrentUser() == ""
+                    //     ? Container()
+                    //     : SizedBox(
+                    //         height: 40,
+                    //         child: ListTile(
+                    //           title: Text(
+                    //             loginController.getCurrentUser(),
+                    //             style: const TextStyle(
+                    //                 color: Colors.white,
+                    //                 fontSize: 14,
+                    //                 fontWeight: FontWeight.w400),
+                    //           ),
+                    //         ),
+                    //       ),
                     !loginController.checkLogin()
                         ? SizedBox(
                             height: 40,
@@ -260,6 +318,27 @@ class _HomeScreenState extends State<HomeScreen> {
                       height: 40,
                       child: ListTile(
                         onTap: () async {
+                          Get.toNamed(AppPages.profile);
+
+                          // Get.snackbar("Cleared", "All cache files cleared");
+                        },
+                        // leading: const Icon(
+                        //   Icons.delete_outline,
+                        //   color: Colors.white,
+                        // ),
+                        title: const Text(
+                          "Profile",
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 40,
+                      child: ListTile(
+                        onTap: () async {
                           Get.toNamed(AppPages.clear_chache);
 
                           // Get.snackbar("Cleared", "All cache files cleared");
@@ -277,29 +356,40 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ),
+                    // SizedBox(
+                    //   height: 40,
+                    //   child: ListTile(
+                    //     onTap: () {
+                    //       Get.dialog(timerDialog());
+                    //     },
+                    //     // leading: const Icon(
+                    //     //   Icons.timer,
+                    //     //   color: Colors.white,
+                    //     // ),
+                    //     title: const Text(
+                    //       "Timer/Fader",
+                    //       style: TextStyle(
+                    //           color: Colors.white,
+                    //           fontSize: 14,
+                    //           fontWeight: FontWeight.w400),
+                    //     ),
+                    //   ),
+                    // ),
                     SizedBox(
                       height: 40,
                       child: ListTile(
-                        onTap: () {
-                          Get.dialog(timerDialog());
+                        onTap: () async {
+                          final InAppReview inAppReview = InAppReview.instance;
+
+                          if (await inAppReview.isAvailable()) {
+                            inAppReview.requestReview();
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content:
+                                        Text("Please try after sometimes")));
+                          }
                         },
-                        // leading: const Icon(
-                        //   Icons.timer,
-                        //   color: Colors.white,
-                        // ),
-                        title: const Text(
-                          "Timer/Fader",
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400),
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      height: 40,
-                      child: ListTile(
-                        onTap: () {},
                         // leading: const Icon(
                         //   Icons.timer,
                         //   color: Colors.white,
@@ -473,10 +563,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                                     height: 29,
                                                   ),
                                                 )
-                                              : Image.asset(
-                                                  "assets/images/heart_unfilled.png",
-                                                  width: 33,
-                                                  height: 29,
+                                              : GestureDetector(
+                                                  onTap: () {
+                                                    Get.to(() =>
+                                                        const FavouritesScreen());
+                                                  },
+                                                  child: Image.asset(
+                                                    "assets/images/heart_unfilled.png",
+                                                    width: 33,
+                                                    height: 29,
+                                                  ),
                                                 );
                                         }
                                         return GestureDetector(
@@ -520,16 +616,20 @@ class _HomeScreenState extends State<HomeScreen> {
                             data.values.toList().sort(
                                 (a, b) => a.tagOrder.compareTo(b.tagOrder));
                             return Expanded(
-                              child: ListView.builder(
-                                  // padding: const EdgeInsets.only(top: 20),
-                                  shrinkWrap: true,
-                                  physics: const BouncingScrollPhysics(),
-                                  itemCount: data.values.length,
-                                  itemBuilder: (context, index) => HomeItem(
-                                        categoriesEntity:
-                                            data.values.toList()[index],
-                                        index: index,
-                                      )),
+                              child: data.values.isEmpty
+                                  ? const Center(
+                                      child: CircularProgressIndicator(),
+                                    )
+                                  : ListView.builder(
+                                      // padding: const EdgeInsets.only(top: 20),
+                                      shrinkWrap: true,
+                                      physics: const BouncingScrollPhysics(),
+                                      itemCount: data.values.length,
+                                      itemBuilder: (context, index) => HomeItem(
+                                            categoriesEntity:
+                                                data.values.toList()[index],
+                                            index: index,
+                                          )),
                             );
                           }),
                     ],
@@ -595,7 +695,11 @@ class HomeItem extends StatelessWidget {
             builder:
                 (BuildContext context, Box<MusicEntity> data, Widget? child) {
               var items = data.values
-                  .where((element) => element.tag1 == categoriesEntity.tagName)
+                  .where((element) =>
+                      element.tag1 == categoriesEntity.tagName ||
+                      element.tag2 == categoriesEntity.tagName ||
+                      element.tag3 == categoriesEntity.tagName ||
+                      element.tag6 == categoriesEntity.tagName)
                   .toList();
               items.sort((a, b) => a.priority.compareTo(b.priority));
               return items.isNotEmpty
@@ -611,50 +715,54 @@ class HomeItem extends StatelessWidget {
                                     : 260
                                 : description == true
                                     ? null
-                                    : 240,
+                                    : 248,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                      top: 8.0, left: 27, bottom: 17),
-                                  child: Text(
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                  top: 8.0, left: 27, bottom: 17),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  // Padding(
+
+                                  Text(
                                     categoriesEntity.displayName,
                                     style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold),
                                   ),
-                                ),
-                                const SizedBox(
-                                  width: 10,
-                                ),
-                                description == null
-                                    ? GestureDetector(
-                                        onTap: () {
-                                          Get.to(() => CategoryDescription(
-                                                displayName: categoriesEntity
-                                                    .displayName,
-                                              ));
-                                        },
-                                        child: Container(
-                                          width: 30,
-                                          height: 30,
-                                          margin: EdgeInsets.only(bottom: 6),
-                                          decoration: BoxDecoration(
-                                              image: DecorationImage(
-                                                  image: AssetImage(
-                                            "assets/svg/info.png",
+                                  // ),
+                                  const SizedBox(
+                                    width: 10,
+                                  ),
+                                  description == null
+                                      ? GestureDetector(
+                                          onTap: () {
+                                            Get.to(() => CategoryDescription(
+                                                  displayName: categoriesEntity
+                                                      .displayName,
+                                                ));
+                                          },
+                                          child: Container(
+                                            width: 30,
+                                            height: 30,
+                                            // padding: EdgeInsets.only(bottom: 2),
+                                            // margin: EdgeInsets.only(bottom: 6),
+                                            decoration: const BoxDecoration(
+                                                image: DecorationImage(
+                                                    image: AssetImage(
+                                              "assets/svg/info.png",
 
-                                            // color: AppColors.primaryColor,
-                                          ))),
-                                        ),
-                                      )
-                                    : Container()
-                              ],
+                                              // color: AppColors.primaryColor,
+                                            ))),
+                                          ),
+                                        )
+                                      : Container()
+                                ],
+                              ),
                             ),
                             description == true
                                 ? Padding(
@@ -697,9 +805,20 @@ class HomeItem extends StatelessWidget {
                                                             items[index]),
                                               );
                                             } else {
-                                              Get.to(() => PaymentScreen(
-                                                    entity: items[index],
-                                                  ));
+                                              var offerings = await Purchases
+                                                  .getOfferings();
+                                              if (offerings.current != null) {
+                                                Get.to(() => PaymentScreen(
+                                                      entity: items[index],
+                                                      offering:
+                                                          offerings.current!,
+                                                    ));
+                                              } else {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(const SnackBar(
+                                                        content: Text(
+                                                            "Somthing went wrong.")));
+                                              }
                                             }
                                           } else {
                                             Get.to(
@@ -857,11 +976,22 @@ class HomeListItem extends StatelessWidget {
                                                 width: 20,
                                                 height: 20,
                                               )
-                                            : Image.asset(
-                                                'assets/images/free.png',
-                                                width: 45,
-                                                height: 24,
-                                                fit: BoxFit.fill,
+                                            : Container(
+                                                width: 40,
+                                                height: 20,
+                                                decoration: BoxDecoration(
+                                                    color: Colors.black54,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8)),
+                                                child: const Center(
+                                                  child: Text(
+                                                    "Free",
+                                                    style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.white),
+                                                  ),
+                                                ),
                                               ),
                                       ),
                                     );
@@ -873,12 +1003,12 @@ class HomeListItem extends StatelessWidget {
                           top: 5,
                           left: 10,
                           child: Container(
+                            width: 40,
+                            height: 20,
                             decoration: BoxDecoration(
                                 color: Colors.green.shade300,
                                 borderRadius: BorderRadius.circular(8)),
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 4.0, vertical: 2),
+                            child: const Center(
                               child: Text(
                                 "New",
                                 style: TextStyle(fontSize: 12),

@@ -7,6 +7,7 @@ import 'package:hive_flutter/adapters.dart';
 import 'package:mishi/core/notification.dart';
 import 'package:mishi/mishi/presentation/routes/app_pages.dart';
 import 'package:mishi/mishi/presentation/routes/app_routes.dart';
+import 'package:mishi/mishi/presentation/utils/app_data.dart';
 import 'package:mishi/mishi/presentation/utils/constants.dart';
 import 'package:mishi/mishi/presentation/utils/theme.dart';
 
@@ -26,6 +27,7 @@ Future<void> main() async {
   await dl.init();
   // if(K)
   // await AppPathProvider.initPath();
+  await initPlatformState();
   runApp(const Mishi());
 }
 

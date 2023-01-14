@@ -9,9 +9,11 @@ import 'package:hive_flutter/adapters.dart';
 import 'package:mishi/core/response_classify.dart';
 import 'package:mishi/mishi/domain/entities/music_entity.dart';
 import 'package:mishi/mishi/domain/entities/player_status.dart';
+import 'package:mishi/mishi/presentation/pages/payment_page.dart';
 import 'package:mishi/mishi/presentation/utils/app_colors.dart';
 import 'package:mishi/mishi/presentation/utils/favourite_toggle_icon_widget.dart';
 import 'package:mishi/mishi/presentation/utils/pretty_print.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:wakelock/wakelock.dart';
 
 import '../../../core/hive_service.dart';
@@ -41,6 +43,22 @@ class _MusicDetailState extends State<MusicDetail>
   late String smallImage;
   late MusicEntity entity;
 
+  getAudios() async {
+    prettyPrint(msg: "getting audio");
+    var hiveService = HiveService();
+    var t =
+        await hiveService.getBox<PlayerStatus>(boxName: AppBoxNames.playerBox);
+    if (t.values.isEmpty) {
+      controller.getAllCompositions(
+          widget.musicEntity.musicId, widget.musicEntity.musicName);
+    } else if (t.values.first.musicName == widget.musicEntity.musicName) {
+      controller.changeListValues();
+    } else {
+      controller.getAllCompositions(
+          widget.musicEntity.musicId, widget.musicEntity.musicName);
+    }
+  }
+
   @override
   void initState() {
     Wakelock.disable();
@@ -54,8 +72,7 @@ class _MusicDetailState extends State<MusicDetail>
     iconAnimationController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 300));
 
-    controller.getAllCompositions(
-        widget.musicEntity.musicId, widget.musicEntity.musicName);
+    getAudios();
     controller.getTiming();
     super.initState();
   }
@@ -135,12 +152,34 @@ class _MusicDetailState extends State<MusicDetail>
                             child: InkWell(
                               onTap: () async {
                                 await controller.writeTiming(timingList[index]);
+                                prettyPrint(
+                                    msg:
+                                        "after writing ${controller.getTiming()}");
                                 if (timingList[index] == "infinite") {
                                   controller.pauseTimer();
                                   controller.start.value = 0;
                                 } else {
-                                  controller.startTimer(
-                                      controller.getTimerinSeconds());
+                                  var hiveService = HiveService();
+                                  var t =
+                                      await hiveService.getBox<PlayerStatus>(
+                                          boxName: AppBoxNames.playerBox);
+                                  if (t.values.isEmpty) {
+                                    prettyPrint(msg: "Not Restoring values");
+                                    controller.getTimerinSeconds();
+                                  } else {
+                                    var td = t.values.first;
+                                    if (td.status == AudioStatus.playing) {
+                                      prettyPrint(msg: "Restoring values");
+                                      controller.startTimer(
+                                          controller.getTimerinSeconds());
+                                    } else {
+                                      prettyPrint(msg: "Not Restoring values");
+
+                                      ;
+                                      controller.start.value =
+                                          controller.getTimerinSeconds();
+                                    }
+                                  }
                                 }
 
                                 Get.back();
@@ -728,10 +767,7 @@ class _MusicDetailState extends State<MusicDetail>
                                                               .value
                                                               .status ==
                                                           Status.LOADING
-                                                      ? const Center(
-                                                          child:
-                                                              CircularProgressIndicator(),
-                                                        )
+                                                      ? const SizedBox()
                                                       : controller
                                                                   .compositionResponse
                                                                   .value
@@ -756,11 +792,10 @@ class _MusicDetailState extends State<MusicDetail>
                                                                         .zero,
                                                                 physics:
                                                                     const NeverScrollableScrollPhysics(),
-                                                                itemCount: controller
-                                                                    .compositionResponse
-                                                                    .value
-                                                                    .data
-                                                                    ?.length,
+                                                                itemCount:
+                                                                    controller
+                                                                        .compositionList
+                                                                        .length,
                                                                 itemBuilder: (BuildContext
                                                                             context,
                                                                         int
@@ -1103,8 +1138,9 @@ class _MusicDetailState extends State<MusicDetail>
                                                                     const BouncingScrollPhysics(),
                                                                 scrollDirection:
                                                                     Axis.horizontal,
-                                                                padding: EdgeInsets
-                                                                    .only(
+                                                                padding:
+                                                                    const EdgeInsets
+                                                                            .only(
                                                                         left:
                                                                             15),
                                                                 itemCount: items
@@ -1139,11 +1175,24 @@ class _MusicDetailState extends State<MusicDetail>
                                                                           .isNotEmpty) {
                                                                         if (data.first.status ==
                                                                             AudioStatus.playing) {
-                                                                          Get.to(
-                                                                              MotionImageScreen(
-                                                                            videoUrl:
-                                                                                items[index].mp4Url,
-                                                                          ));
+                                                                          if (items[index].musicId ==
+                                                                              "endOfFree") {
+                                                                            var offerings =
+                                                                                await Purchases.getOfferings();
+                                                                            if (offerings.current !=
+                                                                                null) {
+                                                                              Get.to(() => PaymentScreen(
+                                                                                    entity: controller.selectedMusic.value!,
+                                                                                    offering: offerings.current!,
+                                                                                  ));
+                                                                            } else {
+                                                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Somthing went wrong.")));
+                                                                            }
+                                                                          } else {
+                                                                            Get.to(MotionImageScreen(
+                                                                              videoUrl: items[index].mp4Url,
+                                                                            ));
+                                                                          }
                                                                         } else {
                                                                           ScaffoldMessenger.of(context)
                                                                               .showSnackBar(const SnackBar(content: Text("Please play the audio to watch")));
