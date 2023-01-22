@@ -1,3 +1,4 @@
+import 'package:assets_audio_player/assets_audio_player.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:mishi/core/hive_service.dart';
@@ -33,7 +34,10 @@ class SplashController extends GetxController {
     } catch (e) {}
     final box =
         await hiveService.getBox<PlayerStatus>(boxName: AppBoxNames.playerBox);
-    box.clear();
+    if (AssetsAudioPlayer.allPlayers().isEmpty) {
+      box.clear();
+    }
+
     var user = FirebaseAuth.instance.currentUser;
 
     Future.delayed(const Duration(seconds: 2), () {

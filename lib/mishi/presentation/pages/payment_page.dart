@@ -187,7 +187,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 width: 90,
                                 child: Center(
                                   child: Text(
-                                    "${myProductList[index].storeProduct.priceString} ${index == 0 ? "month" : "year"}",
+                                    "${myProductList[index].storeProduct.priceString} / ${index == 0 ? "month" : "year"}",
                                     style: const TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold),

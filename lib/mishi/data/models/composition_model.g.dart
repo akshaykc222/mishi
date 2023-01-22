@@ -17,23 +17,23 @@ class CompositionModelAdapter extends TypeAdapter<CompositionModel> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return CompositionModel(
-      instrumentDisplayOrder: fields[0] as int,
-      id: fields[1] as String,
-      owner: fields[2] as String,
-      createdDate: fields[3] as DateTime,
-      instrumentName: fields[4] as String,
-      instrumentAudioUrl: fields[5] as String,
-      updatedDate: fields[6] as DateTime,
-      instrumentLive: fields[7] as bool,
-      instrumentVolumeDefault: fields[8] as int,
-      musicId: fields[9] as String,
-    );
+        instrumentDisplayOrder: fields[0] as int,
+        id: fields[1] as String,
+        owner: fields[2] as String,
+        createdDate: fields[3] as DateTime,
+        instrumentName: fields[4] as String,
+        instrumentAudioUrl: fields[5] as String,
+        updatedDate: fields[6] as DateTime,
+        instrumentLive: fields[7] as bool,
+        instrumentVolumeDefault: fields[8] as int,
+        musicId: fields[9] as String,
+        dDownloaded: fields[10] as bool?);
   }
 
   @override
   void write(BinaryWriter writer, CompositionModel obj) {
     writer
-      ..writeByte(10)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.instrumentDisplayOrder)
       ..writeByte(1)
@@ -53,7 +53,9 @@ class CompositionModelAdapter extends TypeAdapter<CompositionModel> {
       ..writeByte(8)
       ..write(obj.instrumentVolumeDefault)
       ..writeByte(9)
-      ..write(obj.musicId);
+      ..write(obj.musicId)
+      ..writeByte(10)
+      ..write(obj.dDownloaded);
   }
 
   @override

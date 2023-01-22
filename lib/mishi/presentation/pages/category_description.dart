@@ -3,8 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:mishi/mishi/presentation/pages/payment_page.dart';
@@ -299,6 +297,12 @@ class CategoryDescription extends StatelessWidget {
                             height: 40,
                             child: ListTile(
                               onTap: () {
+                                if (musicController.selectedMusic.value !=
+                                    null) {
+                                  // musicController.pauseAllPlayer(
+                                  //     musicController.selectedMusic.value!);
+                                }
+
                                 Get.toNamed(AppPages.login);
                               },
                               // leading: const Icon(
@@ -315,30 +319,30 @@ class CategoryDescription extends StatelessWidget {
                             ),
                           )
                         : SizedBox(
-                            height: 40,
-                            child: ListTile(
-                              onTap: () async {
-                                try {
-                                  await GoogleSignIn().signOut();
-                                } catch (e) {}
-                                await FirebaseAuth.instance.signOut();
-                                var box = GetStorage();
-                                box.write("isLogin", false);
-                                Get.offAllNamed(AppPages.login);
-                              },
-                              // leading: const Icon(
-                              //   Icons.logout,
-                              //   color: Colors.white,
-                              // ),
-                              title: const Text(
-                                "Logout",
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w400),
-                              ),
+                            // height: 40,
+                            // child: ListTile(
+                            //   onTap: () async {
+                            //     try {
+                            //       await GoogleSignIn().signOut();
+                            //     } catch (e) {}
+                            //     await FirebaseAuth.instance.signOut();
+                            //     var box = GetStorage();
+                            //     box.write("isLogin", false);
+                            //     Get.offAllNamed(AppPages.login);
+                            //   },
+                            //   // leading: const Icon(
+                            //   //   Icons.logout,
+                            //   //   color: Colors.white,
+                            //   // ),
+                            //   title: const Text(
+                            //     "Logout",
+                            //     style: TextStyle(
+                            //         color: Colors.white,
+                            //         fontSize: 14,
+                            //         fontWeight: FontWeight.w400),
+                            //   ),
+                            // ),
                             ),
-                          ),
                     SizedBox(
                       height: 40,
                       child: ListTile(

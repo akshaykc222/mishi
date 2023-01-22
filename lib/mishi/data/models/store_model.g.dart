@@ -18,22 +18,24 @@ class StoreModelAdapter extends TypeAdapter<StoreModel> {
     };
     return StoreModel(
       musicName: fields[0] as String,
-      storeLoc: fields[1] as String,
+      storeLoc: fields[1] as List<String>,
       totSize: fields[2] as double,
-      // musicRealName: fields[3] as String,
+      totalMusic: fields[3] as int,
     );
   }
 
   @override
   void write(BinaryWriter writer, StoreModel obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(4)
       ..writeByte(0)
       ..write(obj.musicName)
       ..writeByte(1)
       ..write(obj.storeLoc)
       ..writeByte(2)
-      ..write(obj.totSize);
+      ..write(obj.totSize)
+      ..writeByte(3)
+      ..write(obj.totalMusic);
   }
 
   @override

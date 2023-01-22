@@ -1,8 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:intl/intl.dart';
 import 'package:mishi/mishi/presentation/manager/controllers/login_controller.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
+import '../routes/app_pages.dart';
 import '../utils/constants.dart';
 import '../utils/pretty_print.dart';
 
@@ -31,41 +36,41 @@ class _SubscriptionDetailsState extends State<SubscriptionDetails> {
           .entitlements.all[AppConstants.entitlementID]!.productIdentifier
           .contains("annual_plan")) {
         setState(() {
-          plan = "Year";
+          plan = "Premium";
           try {
             var ex = customerInfo.entitlements.all[AppConstants.entitlementID]!
                     .expirationDate ??
                 "";
             if (ex != "") {
               DateTime dt = DateTime.parse(ex);
-              expiringOn = "${dt.day}-${dt.month}-${dt.year}";
+              expiringOn = DateFormat.yMMMMd().format(dt);
             }
             var exp = customerInfo.entitlements.all[AppConstants.entitlementID]!
                     .originalPurchaseDate ??
                 "";
             if (exp != "") {
               DateTime d = DateTime.parse(exp);
-              subScribedDate = "${d.day}-${d.month}-${d.year}";
+              subScribedDate = DateFormat.yMMMMd().format(d);
             }
           } catch (e) {}
         });
       } else {
         setState(() {
-          plan = "Month";
+          plan = "Premium";
           try {
             var ex = customerInfo.entitlements.all[AppConstants.entitlementID]!
                     .expirationDate ??
                 "";
             if (ex != "") {
               DateTime dt = DateTime.parse(ex);
-              expiringOn = "${dt.day}-${dt.month}-${dt.year}";
+              expiringOn = DateFormat.yMMMMd().format(dt);
             }
             var exp = customerInfo.entitlements.all[AppConstants.entitlementID]!
                     .originalPurchaseDate ??
                 "";
             if (exp != "") {
               DateTime d = DateTime.parse(exp);
-              subScribedDate = "${d.day}-${d.month}-${d.year}";
+              subScribedDate = DateFormat.yMMMMd().format(d);
             }
           } catch (e) {}
         });
@@ -141,23 +146,61 @@ class _SubscriptionDetailsState extends State<SubscriptionDetails> {
               ),
             ]),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              padding: const EdgeInsets.only(left: 20.0, right: 28),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  loginController.getCurrentUser() == ""
-                      ? SizedBox()
-                      : const Icon(
-                          Icons.account_circle_sharp,
-                          size: 30,
-                          color: Colors.white,
-                        ),
-                  Text(
-                    loginController.getCurrentUser(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                    ),
-                  ),
+                  Expanded(
+                      flex: 3,
+                      child: Row(
+                        children: [
+                          loginController.getCurrentUser() == ""
+                              ? SizedBox()
+                              : const Icon(
+                                  Icons.account_circle_sharp,
+                                  size: 30,
+                                  color: Colors.white,
+                                ),
+                          Text(
+                            loginController.getCurrentUser(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      )),
+                  Expanded(
+                    flex: 1,
+                    child: loginController.checkLogin()
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              InkWell(
+                                onTap: () async {
+                                  try {
+                                    await GoogleSignIn().signOut();
+                                  } catch (e) {}
+                                  await FirebaseAuth.instance.signOut();
+                                  var box = GetStorage();
+                                  box.write("isLogin", false);
+                                  Get.toNamed(AppPages.login);
+                                },
+                                // leading: const Icon(
+                                //   Icons.logout,
+                                //   color: Colors.white,
+                                // ),
+                                child: const Text(
+                                  "Logout",
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          )
+                        : const SizedBox(),
+                  )
                 ],
               ),
             ),

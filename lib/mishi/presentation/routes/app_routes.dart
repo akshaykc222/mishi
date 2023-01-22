@@ -24,30 +24,30 @@ var appRoutes = [
       name: AppPages.home,
       page: () => kIsWeb ? const WebHome() : const HomeScreen(),
       bindings: [MusicListBinding(), LoginBinding()]),
-  GetPage(
-      name: AppPages.login,
-      page: () => const LoginScreen(),
-      binding: LoginBinding()),
+  GetPage(name: AppPages.login, page: () => const LoginScreen(), bindings: [
+    LoginBinding(),
+    MusicListBinding(),
+  ]),
   GetPage(
       name: AppPages.intro,
       page: () => const IntroScreen(),
-      binding: IntroBinding()),
+      bindings: [IntroBinding(), MusicListBinding()]),
   // GetPage(
   //   name: AppPages.payment,
   //   page: () =>  PaymentScreen(),
   // ),
   GetPage(
-    name: AppPages.clear_chache,
-    page: () => const ClearCache(),
-  ),
+      name: AppPages.clear_chache,
+      page: () => const ClearCache(),
+      binding: MusicListBinding()),
   GetPage(
       name: AppPages.favourites,
       page: () => const FavouritesScreen(),
       bindings: [MusicListBinding()]),
   GetPage(
-    name: AppPages.profile,
-    page: () => const SubscriptionDetails(),
-  ),
+      name: AppPages.profile,
+      page: () => const SubscriptionDetails(),
+      bindings: [MusicListBinding()]),
   // GetPage(
   //     name: AppPages.musicDetail,
   //     page: () => MusicDetail(musicEntity: musicEntity))

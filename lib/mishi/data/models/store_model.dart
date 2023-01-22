@@ -8,13 +8,15 @@ class StoreModel {
   final String musicName;
 
   @HiveField(1)
-  final String storeLoc;
+  final List<String> storeLoc;
   @HiveField(2)
   final double totSize;
+  @HiveField(3)
+  final int totalMusic;
 
-  StoreModel({
-    required this.musicName,
-    required this.storeLoc,
-    required this.totSize,
-  });
+  StoreModel(
+      {required this.musicName,
+      required this.storeLoc,
+      required this.totSize,
+      required this.totalMusic});
 }

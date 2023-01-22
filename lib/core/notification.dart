@@ -28,7 +28,7 @@ class NotificationService {
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   init() async {
     // Set the background messaging handler early on, as a named top-level function
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
     if (!kIsWeb) {
       channel = const AndroidNotificationChannel(

@@ -1,12 +1,12 @@
 name: mishi
 description: music app
 
-# The following line prevents the package from being accidentally published to
+# The following  line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 
-version: 1.24.0+24
+version: 1.26.0+26
 
 environment:
   sdk: ">=2.17.6 <3.0.0"
@@ -46,19 +46,21 @@ dependencies:
   walletconnect_dart: ^0.0.11
   firebase_messaging: ^14.2.1
 #  dart_jsonwebtoken: ^2.4.2
-  timer_count_down: ^2.2.1
+#  timer_count_down: ^2.2.1
   video_player: ^2.4.7
   google_sign_in: ^5.4.1
   flutter_local_notifications: ^11.0.1
   cloud_firestore: ^4.3.1
   shimmer: ^2.0.0
-  just_audio: ^0.9.30
+  audioplayers: ^2.0.0
   wakelock: ^0.6.2
   webview_flutter: ^3.0.4
 #  flutter_inapp_purchase: ^5.3.1
   in_app_purchase: ^3.0.8
   in_app_review: ^2.0.6
   device_info_plus: ^8.0.0
+  assets_audio_player: ^3.0.6
+  flutter_foreground_task: ^3.10.0
 #  eartho_one: ^1.2.3
 #  package_info: ^0.4.3+2
 #  media_notification: ^0.0.5
@@ -67,6 +69,8 @@ dependencies:
 
   purchases_flutter: ^4.0.0
   in_app_update: ^4.0.1
+  intl: any
+  workmanager: ^0.5.1
 dev_dependencies:
   flutter_test:
     sdk: flutter

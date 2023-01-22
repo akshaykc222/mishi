@@ -30,7 +30,8 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
           var box = GetStorage();
           box.write("isLogin", true);
 
-          Get.offAndToNamed(AppPages.home);
+          // Get.offAndToNamed(AppPages.home);
+          Get.until((route) => Get.currentRoute == AppPages.home);
         }
       }
     });

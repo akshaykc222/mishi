@@ -20,7 +20,7 @@ class PlayerStatusAdapter extends TypeAdapter<PlayerStatus> {
       musicName: fields[0] as String,
       description: fields[1] as String,
       image: fields[2] as String,
-      status: getAudioStatusFromString(fields[3] as String),
+      status: getAudioStatusFromString(fields[3]),
     );
   }
 

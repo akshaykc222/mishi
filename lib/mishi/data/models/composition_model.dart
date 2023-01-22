@@ -25,6 +25,8 @@ class CompositionModel extends CompositionEntity {
   int instrumentVolumeDefault;
   @HiveField(9)
   final String musicId;
+  @HiveField(10)
+  final bool? dDownloaded;
   CompositionModel(
       {required this.instrumentDisplayOrder,
       required this.id,
@@ -35,7 +37,8 @@ class CompositionModel extends CompositionEntity {
       required this.updatedDate,
       required this.instrumentLive,
       required this.instrumentVolumeDefault,
-      required this.musicId})
+      required this.musicId,
+      this.dDownloaded})
       : super(
             instrumentDisplayOrder: instrumentDisplayOrder,
             id: id,
@@ -46,7 +49,8 @@ class CompositionModel extends CompositionEntity {
             updatedDate: updatedDate,
             instrumentLive: instrumentLive,
             instrumentVolumeDefault: instrumentVolumeDefault,
-            musicId: musicId);
+            musicId: musicId,
+            dCompleted: dDownloaded);
   factory CompositionModel.fromJson(Map<String, dynamic> json) =>
       CompositionModel(
         instrumentDisplayOrder: json["instrumentDisplayOrder"],

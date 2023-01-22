@@ -72,7 +72,7 @@ class LoginController extends GetxController {
         await auth.signInWithCredential(credential);
         var box = GetStorage();
         box.write("isLogin", true);
-        Get.offAndToNamed(AppPages.home);
+        Get.until((route) => Get.currentRoute == AppPages.home);
       },
       verificationFailed: (FirebaseAuthException e) {
         Get.snackbar("Error", "${e.message}");
@@ -102,12 +102,12 @@ class LoginController extends GetxController {
       box.remove('login_return');
 
       // Get.back();
-      Get.offAllNamed(AppPages.home);
+      Get.until((route) => Get.currentRoute == AppPages.home);
       if (selectedMusicEntity.value != null) {
         Get.to(() => MusicDetail(musicEntity: selectedMusicEntity.value!));
       }
     } else {
-      Get.offAndToNamed(AppPages.home);
+      Get.until((route) => Get.currentRoute == AppPages.home);
     }
   }
 
@@ -118,7 +118,7 @@ class LoginController extends GetxController {
     await FirebaseAuth.instance.signOut();
     var box = GetStorage();
     box.write("isLogin", false);
-    Get.offAllNamed(AppPages.login);
+    Get.until((route) => Get.currentRoute == AppPages.home);
   }
 
   verifyEmail() {
@@ -154,7 +154,7 @@ class LoginController extends GetxController {
         // You can access the new user via userCredential.user.
 
         print('Successfully signed in with email link!');
-        Get.offAndToNamed(AppPages.home);
+        Get.until((route) => Get.currentRoute == AppPages.home);
       }
     } catch (error) {
       print('Error signing in with email link.');
@@ -197,13 +197,17 @@ class LoginController extends GetxController {
     }
   }
 
-  skip() {
+  skip({bool? first}) {
     var box = GetStorage();
     box.write("isLogin", false);
     box.remove('account');
-    // Get.offAllNamed(AppPages.home);
+
     FirebaseAuth.instance.signInAnonymously();
-    Get.offAllNamed(AppPages.home);
+    if (first == true) {
+      Get.offAllNamed(AppPages.home);
+    } else {
+      Get.until((route) => Get.currentRoute == AppPages.home);
+    }
   }
 
   final haveException = "".obs;

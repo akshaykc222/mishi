@@ -9,6 +9,7 @@ import 'package:mishi/mishi/presentation/pages/phone_login.dart';
 import 'package:mishi/mishi/presentation/routes/app_pages.dart';
 import 'package:mishi/mishi/presentation/utils/app_colors.dart';
 import 'package:mishi/mishi/presentation/utils/pretty_print.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
 
@@ -40,7 +41,12 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       try {
         var session = await connector.createSession(onDisplayUri: (uri) async {
           _uri = uri;
-          await launchUrlString(uri, mode: LaunchMode.externalApplication);
+          if (await canLaunchUrl(Uri.parse(uri))) {
+            await launchUrlString(uri, mode: LaunchMode.externalApplication);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Application not found.")));
+          }
         });
         print(session.accounts[0]);
         print(session.chainId);
@@ -132,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                   box.remove('login_return');
 
                   // Get.back();
-                  Get.offAllNamed(AppPages.home);
+                  Get.until((route) => Get.currentRoute == AppPages.home);
                   if (controller.selectedMusicEntity.value != null) {
                     Get.to(() => MusicDetail(
                         musicEntity: controller.selectedMusicEntity.value!));
@@ -173,7 +179,8 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                 box.remove('login_return');
 
                 // Get.back();
-                Get.offAllNamed(AppPages.home);
+                Get.until((route) => Get.currentRoute == AppPages.home);
+
                 if (controller.selectedMusicEntity.value != null) {
                   Get.to(() => MusicDetail(
                       musicEntity: controller.selectedMusicEntity.value!));

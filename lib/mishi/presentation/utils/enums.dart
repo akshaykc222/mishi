@@ -27,9 +27,9 @@ var timingList = [
   "30 mins",
   "40 mins",
   "1 hour",
-  "2 hour",
-  "4 hour",
-  "8 hour",
+  "2 hours",
+  "4 hours",
+  "8 hours",
 ];
 
 enum TimerEnum {
@@ -40,9 +40,9 @@ enum TimerEnum {
   q40qins,
 
   q1qhour,
-  q2qhour,
-  q4qhour,
-  q8qhour,
+  q2qhours,
+  q4qhours,
+  q8qhours,
 }
 
 timerEnumToString(String d) {
@@ -59,11 +59,11 @@ timerEnumToString(String d) {
       return TimerEnum.q40qins.toString();
     case "q1qhour":
       return TimerEnum.q1qhour.toString();
-    case "q2qhour":
-      return TimerEnum.q2qhour.toString();
-    case "q4qhour":
-      return TimerEnum.q4qhour.toString();
-    case "q8qhour":
-      return TimerEnum.q8qhour.toString();
+    case "q2qhours":
+      return TimerEnum.q2qhours.toString();
+    case "q4qhours":
+      return TimerEnum.q4qhours.toString();
+    case "q8qhours":
+      return TimerEnum.q8qhours.toString();
   }
 }

@@ -6,19 +6,31 @@ import 'package:hive_flutter/adapters.dart';
 import 'package:mishi/core/hive_service.dart';
 import 'package:mishi/mishi/data/app_remote_routes.dart';
 import 'package:mishi/mishi/presentation/manager/controllers/music_detail_controller.dart';
+import 'package:mishi/mishi/presentation/utils/enums.dart';
 import 'package:mishi/mishi/presentation/utils/pretty_print.dart';
 
-import '../../../injecter.dart';
 import '../../data/models/store_model.dart';
+import '../../domain/entities/player_status.dart';
 
-class ClearCache extends StatelessWidget {
+class ClearCache extends StatefulWidget {
   const ClearCache({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    final controller =
-        Get.put(MusicDetailController(sl(), sl(), sl(), sl(), sl()));
+  State<ClearCache> createState() => _ClearCacheState();
+}
+
+class _ClearCacheState extends State<ClearCache> {
+  late MusicDetailController controller;
+
+  @override
+  void initState() {
+    controller = Get.find<MusicDetailController>();
     controller.initCache();
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
         image: DecorationImage(
@@ -63,28 +75,42 @@ class ClearCache extends StatelessWidget {
         body: Obx(() => controller.cacheBox.value != null
             ? ValueListenableBuilder(
                 builder: (context, Box<StoreModel> data, _) {
-                  final d = data.values.toList();
-
-                  final musicNames = d.map((e) => e.musicName).toList();
-                  var uniqueNames = <String>{};
-                  var uniqueList = musicNames
-                      .where((element) => uniqueNames.add(element))
-                      .toList();
                   List<Widget> widgets = [];
-                  for (var element in uniqueList) {
-                    var onlyOneMusicItems =
-                        d.where((e) => e.musicName == element).toList();
-                    double size = 0;
-                    for (var element in onlyOneMusicItems) {
-                      size = element.totSize + size;
+                  final d = data.values.toList();
+                  d.asMap().forEach((key, element) {
+                    double tot = 0.0;
+                    for (var element in element.storeLoc) {
+                      var file = File(element);
+                      if (file.existsSync()) {
+                        tot = tot + file.lengthSync().toDouble();
+                      }
                     }
-                    var sizeInMb = size / 1048576;
+                    var sizeInMb = tot / 1048576;
                     widgets.add(CacheItem(
-                        musicName: element,
-                        locations:
-                            onlyOneMusicItems.map((e) => e.storeLoc).toList(),
+                        index: key,
+                        musicName: element.musicName,
+                        locations: element.storeLoc,
                         size: sizeInMb.toStringAsFixed(2)));
-                  }
+                  });
+                  // final musicNames = d.map((e) => e.musicName).toList();
+                  // var uniqueNames = <String>{};
+                  // var uniqueList = musicNames
+                  //     .where((element) => uniqueNames.add(element))
+                  //     .toList();
+                  // List<Widget> widgets = [];
+                  // for (var element in uniqueList) {
+                  //   var onlyOneMusicItems =
+                  //       d.where((e) => e.musicName == element).toList();
+                  //   double size = 0;
+                  //   for (var element in onlyOneMusicItems) {
+                  //     size = element.totSize + size;
+                  //   }
+                  //   var sizeInMb = size / 1048576;
+                  //   widgets.add(CacheItem(
+                  //       musicName: element,
+                  //       locations:,
+                  //       size: sizeInMb.toStringAsFixed(2)));
+                  // }
                   return widgets.isEmpty
                       ? const Center(
                           child: Text(
@@ -103,7 +129,7 @@ class ClearCache extends StatelessWidget {
                               padding: EdgeInsets.only(
                                   left: 20.0, right: 20, bottom: 60),
                               child: Text(
-                                "All music played is automatically stored on the device for offline use. Clicking up on delete will remove a song and clear the space.",
+                                "All music played is automatically stored on the device for offline use. Clicking delete will remove a song and clear the space.",
                                 style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.normal,
@@ -116,18 +142,17 @@ class ClearCache extends StatelessWidget {
                 },
                 valueListenable: controller.cacheBox.value!.listenable(),
               )
-            : Container(
-                child: Center(
-                  child: Text("some thing went wrong"),
-                ),
+            : const Center(
+                child: Text("Something went wrong"),
               )),
       ),
     );
   }
 }
 
-class CacheItem extends StatelessWidget {
+class CacheItem extends StatefulWidget {
   final String musicName;
+  final int index;
   final List<String> locations;
   final String size;
   const CacheItem({
@@ -135,7 +160,63 @@ class CacheItem extends StatelessWidget {
     required this.musicName,
     required this.locations,
     required this.size,
+    required this.index,
   }) : super(key: key);
+
+  @override
+  State<CacheItem> createState() => _CacheItemState();
+}
+
+class _CacheItemState extends State<CacheItem> {
+  late MusicDetailController controller;
+  bool enable = true;
+  bool pause = false;
+  delete() async {
+    for (var value in widget.locations) {
+      try {
+        if (await File(value).exists()) {
+          await File(value).delete(recursive: true);
+        }
+        if (widget.locations.last == value) {
+          var it = await HiveService()
+              .getBox<StoreModel>(boxName: AppBoxNames.cache_box);
+
+          it.deleteAt(widget.index);
+        }
+      } catch (e) {
+        prettyPrint(msg: e.toString());
+        // ScaffoldMessenger.of(context)
+        //     .showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
+  }
+
+  getPlayingData() async {
+    final box = await HiveService()
+        .getBox<PlayerStatus>(boxName: AppBoxNames.playerBox);
+    if (box.values.isNotEmpty) {
+      if (box.values.first.musicName == widget.musicName &&
+          box.values.first.status == AudioStatus.pause) {
+        await controller.stopAllPlayers();
+        delete();
+      } else if (box.values.first.musicName == widget.musicName &&
+          box.values.first.status == AudioStatus.playing) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Files can't be deleted while playing.")));
+      } else if (box.values.first.musicName != widget.musicName) {
+        delete();
+      }
+    } else {
+      delete();
+    }
+  }
+
+  @override
+  void initState() {
+    controller = Get.find<MusicDetailController>();
+
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -147,7 +228,7 @@ class CacheItem extends StatelessWidget {
           SizedBox(
             width: MediaQuery.of(context).size.width * 0.45,
             child: Text(
-              musicName,
+              widget.musicName,
               maxLines: 1,
               style: const TextStyle(color: Colors.white),
               overflow: TextOverflow.ellipsis,
@@ -156,30 +237,15 @@ class CacheItem extends StatelessWidget {
           Row(
             children: [
               Text(
-                "$size mb",
+                "${widget.size} mb",
                 style: const TextStyle(color: Colors.white),
               ),
-              SizedBox(
+              const SizedBox(
                 width: 10,
               ),
               ElevatedButton(
                 onPressed: () async {
-                  for (var value in locations) {
-                    try {
-                      File(value).delete();
-                      var it = await HiveService()
-                          .getBox<StoreModel>(boxName: AppBoxNames.cache_box);
-                      it.values.toList().asMap().forEach((key, value) {
-                        if (value.musicName == musicName) {
-                          it.deleteAt(key);
-                        }
-                      });
-                    } catch (e) {
-                      prettyPrint(msg: e.toString());
-                      // ScaffoldMessenger.of(context)
-                      //     .showSnackBar(SnackBar(content: Text(e.toString())));
-                    }
-                  }
+                  getPlayingData();
                   // ScaffoldMessenger.of(context).showSnackBar(
                   //     const SnackBar(content: Text("File deleted")));
                 },

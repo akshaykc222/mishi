@@ -13,6 +13,7 @@ class CompositionEntity extends Equatable {
     required this.instrumentLive,
     required this.instrumentVolumeDefault,
     required this.musicId,
+    this.dCompleted,
   });
 
   final int instrumentDisplayOrder;
@@ -24,6 +25,7 @@ class CompositionEntity extends Equatable {
   final DateTime updatedDate;
   final bool instrumentLive;
   int instrumentVolumeDefault;
+  bool? dCompleted;
   final String musicId;
   AudioStatus status = AudioStatus.downloading;
 

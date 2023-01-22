@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:in_app_update/in_app_update.dart';
@@ -16,7 +15,6 @@ import 'package:mishi/mishi/domain/entities/music_entity.dart';
 import 'package:mishi/mishi/presentation/manager/controllers/login_controller.dart';
 import 'package:mishi/mishi/presentation/manager/controllers/music_detail_controller.dart';
 import 'package:mishi/mishi/presentation/manager/controllers/music_list_controller.dart';
-import 'package:mishi/mishi/presentation/manager/controllers/web_music_detail_controller.dart';
 import 'package:mishi/mishi/presentation/pages/category_description.dart';
 import 'package:mishi/mishi/presentation/pages/intro_screen.dart';
 import 'package:mishi/mishi/presentation/pages/payment_page.dart';
@@ -274,6 +272,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             height: 40,
                             child: ListTile(
                               onTap: () {
+                                if (musicController.selectedMusic.value !=
+                                    null) {
+                                  // musicController.pauseAllPlayer(
+                                  //     musicController.selectedMusic.value!);
+                                }
+
                                 Get.toNamed(AppPages.login);
                               },
                               // leading: const Icon(
@@ -290,30 +294,30 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           )
                         : SizedBox(
-                            height: 40,
-                            child: ListTile(
-                              onTap: () async {
-                                try {
-                                  await GoogleSignIn().signOut();
-                                } catch (e) {}
-                                await FirebaseAuth.instance.signOut();
-                                var box = GetStorage();
-                                box.write("isLogin", false);
-                                Get.offAllNamed(AppPages.login);
-                              },
-                              // leading: const Icon(
-                              //   Icons.logout,
-                              //   color: Colors.white,
-                              // ),
-                              title: const Text(
-                                "Logout",
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w400),
-                              ),
+                            // height: 40,
+                            // child: ListTile(
+                            //   onTap: () async {
+                            //     try {
+                            //       await GoogleSignIn().signOut();
+                            //     } catch (e) {}
+                            //     await FirebaseAuth.instance.signOut();
+                            //     var box = GetStorage();
+                            //     box.write("isLogin", false);
+                            //     Get.offAllNamed(AppPages.login);
+                            //   },
+                            //   // leading: const Icon(
+                            //   //   Icons.logout,
+                            //   //   color: Colors.white,
+                            //   // ),
+                            //   title: const Text(
+                            //     "Logout",
+                            //     style: TextStyle(
+                            //         color: Colors.white,
+                            //         fontSize: 14,
+                            //         fontWeight: FontWeight.w400),
+                            //   ),
+                            // ),
                             ),
-                          ),
                     SizedBox(
                       height: 40,
                       child: ListTile(
@@ -683,7 +687,7 @@ class HomeItem extends StatelessWidget {
 
     // pre initializing controllers before navigation
     if (kIsWeb) {
-      final detailController = Get.find<MusicDetailControllerWeb>();
+      // final detailController = Get.find<MusicDetailControllerWeb>();
     } else {
       final detailController = Get.find<MusicDetailController>();
     }
