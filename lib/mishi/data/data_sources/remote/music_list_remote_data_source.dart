@@ -52,8 +52,8 @@ class MusicListRemoteDataSourceImpl extends MusicListRemoteDataSource {
         "${AppRemoteRoutes.musicCompositions}musicID=$musicId&platform=${kIsWeb ? "web" : "android"}");
     final listItems = List<CompositionModel>.from(
         data['compositionListings'].map((x) => CompositionModel.fromJson(x)));
-    await hiveService
-        .clearAllValues<CompositionModel>(AppBoxNames.compositionBox);
+    // await hiveService
+    //     .clearAllValues<CompositionModel>(AppBoxNames.compositionBox);
     hiveService.addBoxes<CompositionModel>(
         listItems, AppBoxNames.compositionBox);
 
@@ -62,12 +62,16 @@ class MusicListRemoteDataSourceImpl extends MusicListRemoteDataSource {
 
   @override
   Future<List<MusicGifEntity>> getMusicGif(String musicId) async {
+    await hiveService.clearAllValues<MusicGifModel>(AppBoxNames.gifBox);
     bool paid = await IsProUser();
     final data = await apiProvider.get(
         "${AppRemoteRoutes.musicVideo}musicID=$musicId&platform=${kIsWeb ? "web" : "android"}&paidUser=${paid ? 1 : 0}");
+    prettyPrint(
+        msg:
+            "${AppRemoteRoutes.musicVideo}musicID=$musicId&platform=${kIsWeb ? "web" : "android"}&paidUser=${paid ? 1 : 0}");
     final listItems = List<MusicGifModel>.from(
         data['motionImagesListings'].map((x) => MusicGifModel.fromJson(x)));
-    await hiveService.clearAllValues<MusicGifModel>(AppBoxNames.gifBox);
+    // await hiveService.clearAllValues<MusicGifModel>(AppBoxNames.gifBox);
     hiveService.addBoxes<MusicGifModel>(listItems, AppBoxNames.gifBox);
     return listItems;
   }

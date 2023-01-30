@@ -53,8 +53,7 @@ class ApiProvider {
       final Map<String, dynamic> responseData = classifyResponse(response);
       return responseData;
     } on DioError catch (err) {
-      print(err);
-      return {};
+      throw BadRequestException("Please check your connection.");
     }
   }
 

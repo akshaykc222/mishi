@@ -76,7 +76,7 @@ class _ClearCacheState extends State<ClearCache> {
             ? ValueListenableBuilder(
                 builder: (context, Box<StoreModel> data, _) {
                   List<Widget> widgets = [];
-                  final d = data.values.toList();
+                  final d = data.values.toList().toSet().toList();
                   d.asMap().forEach((key, element) {
                     double tot = 0.0;
                     for (var element in element.storeLoc) {
@@ -86,6 +86,7 @@ class _ClearCacheState extends State<ClearCache> {
                       }
                     }
                     var sizeInMb = tot / 1048576;
+
                     widgets.add(CacheItem(
                         index: key,
                         musicName: element.musicName,
@@ -142,9 +143,20 @@ class _ClearCacheState extends State<ClearCache> {
                 },
                 valueListenable: controller.cacheBox.value!.listenable(),
               )
-            : const Center(
-                child: Text("Something went wrong"),
-              )),
+            : FutureBuilder(
+                future: controller.initCache(),
+                builder: (
+                  context,
+                  data,
+                ) {
+                  return Center(
+                    child: ElevatedButton(
+                        onPressed: () {
+                          controller.initCache();
+                        },
+                        child: const Text("Reload")),
+                  );
+                })),
       ),
     );
   }

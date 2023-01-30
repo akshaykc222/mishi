@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:mishi/mishi/domain/entities/music_entity.dart';
 import 'package:mishi/mishi/presentation/pages/web_view.dart';
@@ -169,11 +170,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 } else {
                                   appData.isPro = false;
                                 }
+                              } on PlatformException catch (e) {
+                                PurchasesErrorHelper.getErrorCode(e);
+                                Get.showSnackbar(GetSnackBar(
+                                    title: "Error", message: e.message));
                               } catch (e) {
                                 Get.showSnackbar(GetSnackBar(
-                                  title: "Error",
-                                  message: e.toString(),
-                                ));
+                                    title: "Error", message: e.toString()));
                               }
                             },
                             child: Container(

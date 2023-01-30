@@ -58,7 +58,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDZih7CY9-RaIgGY2qU5R4t79zNxJ4NiV4',
-    appId: '1:315759816883:android:3aafc8b9010ce5d54800c6',
+    appId: '1:315759816883:android:ddd092c5038ea84f4800c6',
     messagingSenderId: '315759816883',
     projectId: 'mishi-flutter',
     storageBucket: 'mishi-flutter.appspot.com',
@@ -70,7 +70,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '315759816883',
     projectId: 'mishi-flutter',
     storageBucket: 'mishi-flutter.appspot.com',
-    androidClientId: '315759816883-fqm9m2iamos4n89r87k5kik1e3me8td7.apps.googleusercontent.com',
+    androidClientId: '315759816883-88minkn5s4anrgbkvi2rbmftp9fi961b.apps.googleusercontent.com',
     iosClientId: '315759816883-3u56t55ck5fqiesg7skmagdg8ivtvrma.apps.googleusercontent.com',
     iosBundleId: 'com.wolfpack.mishi.mishi',
   );

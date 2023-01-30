@@ -1,7 +1,5 @@
 import 'package:hive/hive.dart';
 
-import '../mishi/presentation/utils/pretty_print.dart';
-
 class HiveService {
   Future<Box<T>> getBox<T>({required String boxName}) async {
     if (Hive.isBoxOpen(boxName)) {
@@ -33,10 +31,10 @@ class HiveService {
     // });
     items.asMap().forEach((index, item) {
       if (existingItems.contains(item)) {
-        prettyPrint(msg: "item exits updated $item");
+        // prettyPrint(msg: "item exits updated $item");
         openBox.put(index, item);
       } else {
-        prettyPrint(msg: "item added $item");
+        // prettyPrint(msg: "item added $item");
         openBox.add(item);
       }
     });

@@ -7,12 +7,72 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:315759816883:android:ddd092c5038ea84f4800c6",
+        "android_client_info": {
+          "package_name": "com.digitalchorus.mishi"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "315759816883-h2kgifop66lt1755o2ob82v35eoqc46v.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDZih7CY9-RaIgGY2qU5R4t79zNxJ4NiV4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "315759816883-h2kgifop66lt1755o2ob82v35eoqc46v.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "315759816883-3u56t55ck5fqiesg7skmagdg8ivtvrma.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.wolfpack.mishi.mishi"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:315759816883:android:3aafc8b9010ce5d54800c6",
         "android_client_info": {
           "package_name": "com.wolfpack.mishi"
         }
       },
       "oauth_client": [
+        {
+          "client_id": "315759816883-af2dqrcr7d0rjn2ti0d5sah125c5ar9p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wolfpack.mishi",
+            "certificate_hash": "5143f343845cf68d0b67a66005282a00e8a9484c"
+          }
+        },
+        {
+          "client_id": "315759816883-dbpggv7fcdecc0hvpa8ulbrmiak4ramq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wolfpack.mishi",
+            "certificate_hash": "1a98c12ef79dc7c92889c74204d5e160a4463349"
+          }
+        },
+        {
+          "client_id": "315759816883-kmqm8mhsrlafkje1snpdgbhc7c8rkpcm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wolfpack.mishi",
+            "certificate_hash": "f51853db4ca27d78e02ca4d4c99800e880d5595d"
+          }
+        },
         {
           "client_id": "315759816883-h2kgifop66lt1755o2ob82v35eoqc46v.apps.googleusercontent.com",
           "client_type": 3
@@ -49,6 +109,14 @@
         }
       },
       "oauth_client": [
+        {
+          "client_id": "315759816883-88minkn5s4anrgbkvi2rbmftp9fi961b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wolfpack.mishi.mishi",
+            "certificate_hash": "1a98c12ef79dc7c92889c74204d5e160a4463349"
+          }
+        },
         {
           "client_id": "315759816883-fqm9m2iamos4n89r87k5kik1e3me8td7.apps.googleusercontent.com",
           "client_type": 1,

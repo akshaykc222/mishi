@@ -35,6 +35,7 @@ import 'core/api_provider.dart';
 import 'core/hive_service.dart';
 import 'mishi/data/models/categories_model.dart';
 import 'mishi/domain/repositories/connection_repository.dart';
+import 'mishi/presentation/manager/controllers/music_detail_controller.dart';
 import 'mishi/presentation/utils/app_data.dart';
 
 final sl = GetIt.instance;
@@ -51,6 +52,7 @@ Future<void> init() async {
 
   //repository
   sl.registerLazySingleton<MusicListRepository>(() => MusicListRepositoryImpl(
+        sl(),
         sl(),
         sl(),
       ));
@@ -78,6 +80,13 @@ Future<void> init() async {
   sl.registerLazySingleton<ApiProvider>(() => ApiProvider());
   sl.registerLazySingleton<IntroUseCase>(() => IntroUseCase(sl()));
   sl.registerLazySingleton<HiveService>(() => HiveService());
+  sl.registerLazySingleton<MusicDetailController>(() => MusicDetailController(
+        sl(),
+        sl(),
+        sl(),
+        sl(),
+        sl(),
+      ));
   await GetStorage.init();
   // sl.registerSingleton(NavigationBarMoksha(sl()));
   if (!kIsWeb) {

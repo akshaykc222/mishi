@@ -2,15 +2,16 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:assets_audio_player/assets_audio_player.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
+import 'package:mishi/core/custom_exception.dart';
 import 'package:mishi/core/hive_service.dart';
 import 'package:mishi/core/response_classify.dart';
 import 'package:mishi/core/usecase.dart';
@@ -31,6 +32,7 @@ import 'package:mishi/mishi/presentation/utils/pretty_print.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../../data/models/sound_listing_model.dart';
+import '../../../domain/entities/music_gif_entity.dart';
 
 class MusicDetailController extends GetxController {
   final GetMusicCompositionsUseCase compositionsUseCase;
@@ -42,7 +44,7 @@ class MusicDetailController extends GetxController {
       this.hiveService, this.gifUseCase, this.soundListUseCase);
   final compositionResponse =
       ResponseClassify<List<CompositionEntity>>.loading().obs;
-
+  final motionResponse = ResponseClassify<List<MusicGifEntity>>.loading().obs;
   final isPlaying = false.obs;
 
   changePlayingMode() {
@@ -58,6 +60,7 @@ class MusicDetailController extends GetxController {
   changeSelectedMusic(MusicEntity entity) async {
     selectedMusic.value = entity;
     tempCompositionList.clear();
+    motionResponse.value = ResponseClassify.loading();
     tempCompositionList.addAll(compositionList);
     await disposePlayers();
     if (_timer.value != null) {
@@ -71,18 +74,20 @@ class MusicDetailController extends GetxController {
         status: AudioStatus.downloading));
   }
 
-  changeListValues() {
+  changeListValues(String id) async {
     prettyPrint(msg: "Calling");
     compositionList.clear();
     compositionList.addAll(tempCompositionList);
+    await hiveService.clearAllValues<MusicGifModel>(AppBoxNames.gifBox);
+    // getAllMotion(id);
     update();
   }
 
   final compositionList = <CompositionEntity>[].obs;
   // final compositionAudioPlayers = <AudioPlayer>[].obs;
-  final compositionAudioPlayersJustAudio = <AudioPlayer>[].obs;
+  final compositionAudioPlayersJustAudio = <AssetsAudioPlayer>[].obs;
 
-  final soundAudioPlayers = <AudioPlayer>[].obs;
+  final soundAudioPlayers = <AssetsAudioPlayer>[].obs;
 
   final isExpanded = false.obs;
 
@@ -110,6 +115,10 @@ class MusicDetailController extends GetxController {
     isExpandedMotion.value = !isExpandedMotion.value;
   }
 
+  changeExpandedMotionFalse() {
+    isExpandedMotion.value = false;
+  }
+
   final waitingPlayers = false.obs;
   Future showMediaNotification() async {
     const AndroidNotificationDetails("audio_channel_id", "audio_channel",
@@ -129,10 +138,17 @@ class MusicDetailController extends GetxController {
     //     platform);
   }
 
+  AudioStatus currentAudioStatus = AudioStatus.canPlay;
+  String selectedTitle = "";
+  bool stopLooping = false;
+
   playAudio({required MusicEntity musicEntity, bool? recursive}) async {
     // showMediaNotification();
     // bool success = await FlutterBackground.enableBackgroundExecution();
-
+    currentAudioStatus = AudioStatus.playing;
+    selectedTitle = musicEntity.musicName;
+    FlutterForegroundTask.updateService(
+        notificationTitle: musicEntity.musicName);
     try {
       waitingPlayers.value = true;
       // compositionAudioPlayersJustAudio.asMap().forEach((index, value) {
@@ -144,20 +160,24 @@ class MusicDetailController extends GetxController {
 
       // compositionAudioPlayers.clear();
       if (recursive == true) {
+        if (stopLooping) {
+          throw BadRequestException("Failed to download");
+        }
       } else {
+        stopLooping = false;
         compositionList.clear();
         await getAllCompositions(musicEntity.musicId, musicEntity.musicName,
-            download: true);
+            download: true, fromPlay: true);
       }
 
       if (kIsWeb) {
       } else {
         final tempPath = await getApplicationDocumentsDirectory();
-        final data = compositionList
+        final data = tempCompositionList
             .where((element) => element.status == AudioStatus.canPlay);
         debugPrint(
-            " downloaded status : ${data.length} out of ${compositionList.length}");
-        if (data.length == compositionList.length) {
+            " downloaded status : ${data.length} out of ${tempCompositionList.length}");
+        if (data.length == tempCompositionList.length) {
           waitingPlayers.value = false;
 
           // compositionAudioPlayers.addAll(List.generate(data.length, (index) {
@@ -167,40 +187,71 @@ class MusicDetailController extends GetxController {
           compositionAudioPlayersJustAudio
               .addAll(List.generate(data.length, (index) {
             debugPrint(index.toString());
-            return AudioPlayer()..setReleaseMode(ReleaseMode.loop);
+            return AssetsAudioPlayer.newPlayer();
           }));
           compositionAudioPlayersJustAudio.asMap().forEach((index, data) async {
             var audioFile =
-                File("${tempPath.path}/${compositionList[index].id}");
-            // await compositionAudioPlayersJustAudio[index].open(
-            //     Audio.file(audioFile.path,
-            //         metas: Metas(
-            //             id: selectedMusic.value?.id,
-            //             title: selectedMusic.value?.musicName,
-            //             image: MetasImage(
-            //                 path: selectedMusic.value?.smallImageUrl ?? "",
-            //                 type: ImageType.network))),
-            //     showNotification: false,
-            //     autoStart: false,
-            //     playInBackground: PlayInBackground.enabled,
-            //     notificationSettings: NotificationSettings(
-            //         seekBarEnabled: false,
-            //         stopEnabled: false,
-            //         nextEnabled: false,
-            //         playPauseEnabled: true,
-            //         prevEnabled: false,
-            //         customPlayPauseAction: (v) {
-            //           if (AssetsAudioPlayer.allPlayers().isNotEmpty) {
-            //             pauseFromNoti();
-            //           }
-            //         }));
+                File("${tempPath.path}/${tempCompositionList[index].id}");
+            await compositionAudioPlayersJustAudio[index].open(
+                Audio.file(audioFile.path,
+                    metas: Metas(
+                        id: selectedMusic.value?.id,
+                        title: selectedMusic.value?.musicName,
+                        image: MetasImage(
+                            path: selectedMusic.value?.smallImageUrl ?? "",
+                            type: ImageType.network))),
+                showNotification: false,
+                autoStart: false,
+                playInBackground: PlayInBackground.enabled,
+                audioFocusStrategy: const AudioFocusStrategy.request(
+                    resumeAfterInterruption: false,
+                    resumeOthersPlayersAfterDone: false),
+                notificationSettings: NotificationSettings(
+                    seekBarEnabled: false,
+                    stopEnabled: false,
+                    nextEnabled: false,
+                    playPauseEnabled: true,
+                    prevEnabled: false,
+                    customPlayPauseAction: (v) {
+                      if (AssetsAudioPlayer.allPlayers().isNotEmpty) {
+                        pauseFromNoti();
+                      }
+                    }));
 
             compositionAudioPlayersJustAudio[index]
-                .play(DeviceFileSource(audioFile.path));
+                .setLoopMode(LoopMode.single);
             compositionAudioPlayersJustAudio[index].setVolume(
-                compositionList[index].instrumentVolumeDefault * 0.01);
+                tempCompositionList[index].instrumentVolumeDefault * 0.01);
           });
-
+          compositionAudioPlayersJustAudio.last.onReadyToPlay.listen((event) {
+            for (var element in compositionAudioPlayersJustAudio) {
+              element.play();
+            }
+          });
+          Future.delayed(const Duration(seconds: 10), () {
+            if (AssetsAudioPlayer.allPlayers().isNotEmpty) {
+              AssetsAudioPlayer.allPlayers()
+                  .values
+                  .first
+                  .realtimePlayingInfos
+                  .listen((event) async {
+                prettyPrint(msg: "${event.isPlaying}");
+                // var pr = await hiveService.getBox<PlayerStatus>(
+                //     boxName: AppBoxNames.playerBox);
+                // if (pr.values.isNotEmpty) {
+                if (currentAudioStatus == AudioStatus.stop ||
+                    currentAudioStatus == AudioStatus.stop) {
+                } else if (event.isPlaying == false &&
+                    currentAudioStatus == AudioStatus.playing) {
+                  pauseAllPlayer(selectedMusic.value!);
+                } else if (event.isPlaying &&
+                    currentAudioStatus == AudioStatus.pause) {
+                  resumeAllPlayers(selectedMusic.value!);
+                }
+                // }
+              });
+            }
+          });
           // compositionAudioPlayers.asMap().forEach((index, data) {
           //   var audioFile =
           //       File("${tempPath.path}/${compositionList[index].instrumentName}");
@@ -256,27 +307,103 @@ class MusicDetailController extends GetxController {
               image: selectedMusic.value?.smallImageUrl ?? "",
               status: AudioStatus.downloading));
           waitingPlayers.value = true;
-          Future.delayed(const Duration(seconds: 1), () {
-            playAudio(musicEntity: musicEntity, recursive: true);
-          });
+          if (stopLooping == false) {
+            Future.delayed(const Duration(seconds: 1), () {
+              playAudio(musicEntity: musicEntity, recursive: true);
+            });
+          }
         }
       }
     } catch (e) {
       waitingPlayers.value = false;
+      await pauseAllPlayer(musicEntity);
       await stopAllPlayers();
+
+      final tempPath = await getApplicationDocumentsDirectory();
+      for (var element in tempCompositionList) {
+        var audioFile = File("${tempPath.path}/${element.id}");
+        try {
+          if (await File(audioFile.path).exists()) {
+            await File(audioFile.path).delete(recursive: true);
+          }
+          if (tempCompositionList.last == element) {
+            var it = await HiveService()
+                .getBox<StoreModel>(boxName: AppBoxNames.cache_box);
+            it.values.toList().asMap().forEach((key, value) {
+              if (value.musicName == (selectedMusic.value?.musicName ?? "")) {
+                it.deleteAt(key);
+              }
+            });
+            // var index=it
+            // it.deleteAt(widget.index);
+          }
+        } catch (e) {
+          prettyPrint(msg: e.toString());
+          // ScaffoldMessenger.of(context)
+          //     .showSnackBar(SnackBar(content: Text(e.toString())));
+        }
+      }
+      Get.snackbar("Error", e.toString(),
+          backgroundColor: Colors.black, colorText: Colors.white);
     }
+  }
+
+  stopOnError(String e) async {
+    stopLooping = true;
+    waitingPlayers.value = false;
+    await pauseAllPlayer(selectedMusic.value!);
+    await stopAllPlayers();
+
+    final tempPath = await getApplicationDocumentsDirectory();
+    for (var element in tempCompositionList) {
+      var audioFile = File("${tempPath.path}/${element.id}");
+      try {
+        if (await File(audioFile.path).exists()) {
+          await File(audioFile.path).delete(recursive: true);
+        }
+        if (tempCompositionList.last == element) {
+          var it = await HiveService()
+              .getBox<StoreModel>(boxName: AppBoxNames.cache_box);
+          it.values.toList().asMap().forEach((key, value) {
+            if (value.musicName == (selectedMusic.value?.musicName ?? "")) {
+              it.deleteAt(key);
+            }
+          });
+          // var index=it
+          // it.deleteAt(widget.index);
+        }
+      } catch (e) {
+        prettyPrint(msg: e.toString());
+        // ScaffoldMessenger.of(context)
+        //     .showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
+    // Get.snackbar("Error", e.toString(),
+    //     backgroundColor: Colors.black, colorText: Colors.white);
   }
 
   changePlayerStatus(PlayerStatus data) {
     playerStatusUseCase.call(data);
   }
 
-  getAllCompositions(String id, String musicName, {bool? download}) async {
+  getAllMotion(String id) async {
+    motionResponse.value = ResponseClassify.loading();
+    try {
+      motionResponse.value =
+          ResponseClassify.completed(await gifUseCase.call(id));
+    } catch (e) {
+      motionResponse.value = ResponseClassify.error("");
+      // Get.snackbar("Error", e.toString());
+    }
+  }
+
+  getAllCompositions(String id, String musicName,
+      {bool? download, bool? fromPlay}) async {
     compositionResponse.value = ResponseClassify.loading();
     try {
       compositionResponse.value =
           ResponseClassify.completed(await compositionsUseCase.call(id));
-      gifUseCase.call(id);
+      // getAllMotion(id);
       compositionList.clear();
 
       compositionList.addAll(compositionResponse.value.data ?? []);
@@ -291,11 +418,15 @@ class MusicDetailController extends GetxController {
       if (!kIsWeb && download == true) {
         tempCompositionList.clear();
         tempCompositionList.addAll(compositionList);
+
         downloadAllCompositions(musicName);
       } else {}
     } catch (e) {
       waitingPlayers.value = false;
       compositionResponse.value = ResponseClassify.error(e.toString());
+      if (fromPlay == true) {
+        throw BadRequestException("Failed to download. Connection timed out.");
+      }
     }
   }
 
@@ -349,66 +480,70 @@ class MusicDetailController extends GetxController {
   setSoundAudioPlayer(List<SoundListingEntity> data) {
     for (var element in data) {
       element.volume = 0.0;
-      soundAudioPlayers.add(AudioPlayer()..setReleaseMode(ReleaseMode.loop));
+      soundAudioPlayers.add(AssetsAudioPlayer());
     }
     soundAudioPlayers.asMap().forEach((index, value) async {
       prettyPrint(msg: "Seting sound $index");
       var tempDir = await getApplicationDocumentsDirectory();
       var temFile = File("${tempDir.path}/s${data[index].id}");
       if (await temFile.exists()) {
-        // await soundAudioPlayers[index].open(
-        //     Audio.file(temFile.path,
-        //         metas: Metas(
-        //             id: selectedMusic.value?.id,
-        //             title: selectedMusic.value?.musicName,
-        //             image: MetasImage(
-        //                 path: selectedMusic.value?.smallImageUrl ?? "",
-        //                 type: ImageType.network))),
-        //     showNotification: false,
-        //     autoStart: false,
-        //     playInBackground: PlayInBackground.enabled);
-        // soundAudioPlayers[index].setLoopMode(LoopMode.single);
-
+        await soundAudioPlayers[index].open(
+            Audio.file(temFile.path,
+                metas: Metas(
+                    id: selectedMusic.value?.id,
+                    title: selectedMusic.value?.musicName,
+                    image: MetasImage(
+                        path: selectedMusic.value?.smallImageUrl ?? "",
+                        type: ImageType.network))),
+            showNotification: false,
+            autoStart: false,
+            audioFocusStrategy: const AudioFocusStrategy.request(
+                resumeAfterInterruption: false,
+                resumeOthersPlayersAfterDone: false),
+            playInBackground: PlayInBackground.enabled);
+        soundAudioPlayers[index].setLoopMode(LoopMode.single);
         // soundAudioPlayers[index].play();
-        soundAudioPlayers[index].play(DeviceFileSource(temFile.path));
+
         soundAudioPlayers[index].setVolume(0.0);
       } else {
         Future.delayed(const Duration(seconds: 20), () async {
           if (await temFile.exists()) {
-            // await soundAudioPlayers[index].open(
-            //     Audio.file(temFile.path,
-            //         metas: Metas(
-            //             id: selectedMusic.value?.id,
-            //             title: selectedMusic.value?.musicName,
-            //             image: MetasImage(
-            //                 path: selectedMusic.value?.smallImageUrl ?? "",
-            //                 type: ImageType.network))),
-            //     showNotification: false,
-            //     autoStart: false,
-            //     notificationSettings: NotificationSettings(
-            //         seekBarEnabled: false,
-            //         stopEnabled: false,
-            //         nextEnabled: false,
-            //         playPauseEnabled: true,
-            //         prevEnabled: false,
-            //         customPlayPauseAction: (v) {
-            //           pauseFromNoti();
-            //         }),
-            //     playInBackground: PlayInBackground.enabled);
-            // soundAudioPlayers[index].setLoopMode(LoopMode.single);
+            await soundAudioPlayers[index].open(
+                Audio.file(temFile.path,
+                    metas: Metas(
+                        id: selectedMusic.value?.id,
+                        title: selectedMusic.value?.musicName,
+                        image: MetasImage(
+                            path: selectedMusic.value?.smallImageUrl ?? "",
+                            type: ImageType.network))),
+                showNotification: false,
+                audioFocusStrategy: const AudioFocusStrategy.request(
+                    resumeAfterInterruption: false,
+                    resumeOthersPlayersAfterDone: false),
+                autoStart: false,
+                notificationSettings: NotificationSettings(
+                    seekBarEnabled: false,
+                    stopEnabled: false,
+                    nextEnabled: false,
+                    playPauseEnabled: true,
+                    prevEnabled: false,
+                    customPlayPauseAction: (v) {
+                      pauseFromNoti();
+                    }),
+                playInBackground: PlayInBackground.enabled);
+            soundAudioPlayers[index].setLoopMode(LoopMode.single);
             // soundAudioPlayers[index].play();
-            soundAudioPlayers[index].play(DeviceFileSource(temFile.path));
-            // soundAudioPlayers[index].setVolume(0.0);
+
             soundAudioPlayers[index].setVolume(0.0);
           }
         });
       }
     });
-    // soundAudioPlayers.last.onReadyToPlay.listen((event) {
-    //   for (var element in soundAudioPlayers) {
-    //     element.play();
-    //   }
-    // });
+    soundAudioPlayers.last.onReadyToPlay.listen((event) {
+      for (var element in soundAudioPlayers) {
+        element.play();
+      }
+    });
   }
 
   Widget soundListDataItem(
@@ -469,31 +604,32 @@ class MusicDetailController extends GetxController {
 
   downloadAllCompositions(String musicName) async {
     var tempDir = await getApplicationDocumentsDirectory();
-    compositionList.clear();
-    compositionList.addAll(compositionResponse.value.data ?? []);
-    compositionList.forEach((element) async {
+    // compositionList.clear();
+    // compositionList.addAll(compositionResponse.value.data ?? []);
+
+    tempCompositionList.forEach((element) async {
       var temFile = File("${tempDir.path}/${element.id}");
 
       if (await temFile.exists()) {
         // playerStatusUseCase.call(PlayerStatus(musicName: selectedMusic.value?.musicName??"", description: selectedMusic.value?.musicDescription??"", image: selectedMusic.value?.smallImageUrl??"", status: AudioStatus.canPlay));
         element.status = AudioStatus.canPlay;
-        compositionList.refresh();
+        tempCompositionList.refresh();
         // if(compositionResponse.value.data!.last==element){
         //   waitingPlayers.value=false;
         // }
       } else {
         List<String> tempLoc = [];
-        compositionResponse.value.data?.forEach((element) {
+        for (var element in tempCompositionList) {
           var temFile = File("${tempDir.path}/${element.id}");
           tempLoc.add(temFile.path);
-        });
+        }
         prettyPrint(
             msg:
                 "islast item ${compositionResponse.value.data?.last.id == element.id}");
         downloadAudio(
           entity: element,
           musicName: musicName,
-          isLasItem: compositionResponse.value.data?.last.id == element.id,
+          isLasItem: tempCompositionList.last.id == element.id,
           storeLoc: tempLoc,
         );
       }
@@ -511,95 +647,95 @@ class MusicDetailController extends GetxController {
     var tempDir = await getApplicationDocumentsDirectory();
     var temFile = File("${tempDir.path}/${entity.id}");
 
-    var response = await http.Client()
-        .send(http.Request('GET', Uri.parse(entity.instrumentAudioUrl)));
+    try {
+      var client = http.Client();
+      var response = await client.send(http.Request(
+        'GET',
+        Uri.parse(entity.instrumentAudioUrl),
+      ));
 
-    var tempWrite = temFile.openWrite();
-    var length = response.contentLength ?? 0;
-    var received = 0;
-    response.stream
-        .map((s) {
-          received += s.length;
-          debugPrint(
-              "${(received / length) * 100}  % ${entity.instrumentName} file size : ${temFile.lengthSync()} ");
-          double per = (received / length) * 100;
-          if (per > 95) {
-            entity.status = AudioStatus.canPlay;
+      var tempWrite = temFile.openWrite();
+      var length = response.contentLength ?? 0;
+      var received = 0;
+      response.stream
+          .map((s) {
+            received += s.length;
+            debugPrint(
+                "${(received / length) * 100}  % ${entity.instrumentName} file size : ${temFile.lengthSync()} ");
+            double per = (received / length) * 100;
+            if (per > 95) {
+              entity.status = AudioStatus.canPlay;
 
-            compositionResponse.refresh();
-          }
-          if (per == 100) {
-            entity.dCompleted = true;
-            compositionResponse.refresh();
-            // tempStoreItems.add(StoreModel(
-            //   musicName: selectedMusic.value?.musicName ?? "",
-            //   storeLoc: storeLoc,
-            //   totSize: temFile.lengthSync().toDouble(),
-            //   totalMusic: compositionList.length,
-            // ));
-            prettyPrint(msg: "added store model $musicName");
-            // if (isLasItem) {
-            //
-            //   double tot = 0.0;
-            //   for (var element in storeLoc) {
-            //     var file = File(element);
-            //     if (file.existsSync()) {
-            //       tot = tot + file.lengthSync().toDouble();
-            //     }
-            //   }
-            //   hiveService.addBoxes<StoreModel>([
-            //     StoreModel(
-            //       musicName: selectedMusic.value?.musicName ?? "",
-            //       storeLoc: storeLoc,
-            //       totSize: tot,
-            //       totalMusic: compositionList.length,
-            //     )
-            //   ], AppBoxNames.cache_box);
-            // }
-          }
-          return s;
-        })
-        .pipe(tempWrite)
-        .whenComplete(() {
-          if (isLasItem) {
-            double tot = 0.0;
-            for (var element in storeLoc) {
-              var file = File(element);
-              if (file.existsSync()) {
-                tot = tot + file.lengthSync().toDouble();
-              }
+              tempCompositionList.refresh();
             }
-            hiveService.addBoxes<StoreModel>([
-              StoreModel(
-                musicName: selectedMusic.value?.musicName ?? "",
-                storeLoc: storeLoc,
-                totSize: tot,
-                totalMusic: compositionList.length,
-              )
-            ], AppBoxNames.cache_box);
-          }
-        });
+            if (per == 100) {
+              entity.dCompleted = true;
+              tempCompositionList.refresh();
+              // tempStoreItems.add(StoreModel(
+              //   musicName: selectedMusic.value?.musicName ?? "",
+              //   storeLoc: storeLoc,
+              //   totSize: temFile.lengthSync().toDouble(),
+              //   totalMusic: compositionList.length,
+              // ));
+              prettyPrint(msg: "added store model $musicName");
+              // if (isLasItem) {
+              //
+              //   double tot = 0.0;
+              //   for (var element in storeLoc) {
+              //     var file = File(element);
+              //     if (file.existsSync()) {
+              //       tot = tot + file.lengthSync().toDouble();
+              //     }
+              //   }
+              //   hiveService.addBoxes<StoreModel>([
+              //     StoreModel(
+              //       musicName: selectedMusic.value?.musicName ?? "",
+              //       storeLoc: storeLoc,
+              //       totSize: tot,
+              //       totalMusic: compositionList.length,
+              //     )
+              //   ], AppBoxNames.cache_box);
+              // }
+            }
+            return s;
+          })
+          .handleError((k) {
+            stopOnError("sdf");
+            client.close();
+          })
+          .pipe(tempWrite)
+          .whenComplete(() {
+            if (isLasItem) {
+              double tot = 0.0;
+              for (var element in storeLoc) {
+                var file = File(element);
+                if (file.existsSync()) {
+                  tot = tot + file.lengthSync().toDouble();
+                }
+              }
+              hiveService.addBoxes<StoreModel>([
+                StoreModel(
+                  musicName: selectedMusic.value?.musicName ?? "",
+                  storeLoc: storeLoc,
+                  totSize: tot,
+                  totalMusic: compositionList.length,
+                )
+              ], AppBoxNames.cache_box);
+            }
+          });
+    } on TimeoutException catch (_) {
+      stopOnError("Failed to download.");
+    } catch (e) {
+      stopOnError("Failed to download.");
+    }
   }
 
   pauseFromNoti() {
     bool play = false;
-    if (AssetsAudioPlayer.allPlayers().values.isNotEmpty) {
-      play = AssetsAudioPlayer.allPlayers().values.first.isPlaying.value;
-    }
     AssetsAudioPlayer.allPlayers().values.forEach((element) {
-      // play = element.isPlaying.value;
-      if (play) {
-        element.pause();
-      } else {
-        element.play();
-      }
-      // element.playOrPause();
+      play = element.isPlaying.value;
+      element.playOrPause();
     });
-    if (play) {
-      pauseTimer();
-    } else {
-      unpauseTimer();
-    }
     playerStatusUseCase.call(PlayerStatus(
         musicName: selectedMusic.value!.musicName,
         description: selectedMusic.value!.musicDescription,
@@ -608,10 +744,12 @@ class MusicDetailController extends GetxController {
   }
 
   pauseAllPlayer(MusicEntity entity) {
+    currentAudioStatus = AudioStatus.pause;
     if (getTimerinSeconds() != 0) {
       pauseTimer();
     }
 
+    // FlutterForegroundTask.stopService();
     prettyPrint(msg: "${compositionAudioPlayersJustAudio.length}");
     playerStatusUseCase.call(PlayerStatus(
         musicName: entity.musicName,
@@ -626,68 +764,89 @@ class MusicDetailController extends GetxController {
     });
     playerStatus.value = AudioStatus.pause;
     prettyPrint(msg: "PAUSING ALL PLAYERS");
+    FlutterForegroundTask.updateService(notificationTitle: entity.musicName);
   }
 
   stopAllPlayers() async {
     compositionAudioPlayersJustAudio.asMap().forEach((key, value) {
-      compositionAudioPlayersJustAudio[key].stop();
+      compositionAudioPlayersJustAudio[key].pause();
     });
     soundAudioPlayers.asMap().forEach((key, value) {
-      soundAudioPlayers[key].stop();
+      soundAudioPlayers[key].pause();
     });
-    playerStatus.value = AudioStatus.pause;
+    // compositionAudioPlayersJustAudio.asMap().forEach((key, value) {
+    //   compositionAudioPlayersJustAudio[key].stop();
+    // });
+    // soundAudioPlayers.asMap().forEach((key, value) {
+    //   soundAudioPlayers[key].stop();
+    // });
+
+    // await disposePlayers();
+
+    currentAudioStatus = AudioStatus.stop;
+    playerStatus.value = AudioStatus.stop;
     final box =
         await hiveService.getBox<PlayerStatus>(boxName: AppBoxNames.playerBox);
     box.clear();
     prettyPrint(msg: "STOPPING ALL PLAYERS");
+    start.value = 0;
+    _timer.value?.cancel();
   }
 
   resumeAllPlayers(MusicEntity entity) async {
-    if (getTimerinSeconds() != 0) {
-      unpauseTimer();
+    if (currentAudioStatus != AudioStatus.stop) {
+      currentAudioStatus = AudioStatus.playing;
+      if (getTimerinSeconds() != 0) {
+        unpauseTimer();
+      }
+
+      // showMediaNotification();
+
+      // compositionAudioPlayersJustAudio.asMap().forEach((key, value) {
+      //   // var vl = compositionAudioPlayersJustAudio[key].volume;
+      //   // await compositionAudioPlayersJustAudio[key].setVolume(0);
+      //   compositionAudioPlayersJustAudio[key].play();
+      //   // compositionAudioPlayersJustAudio[key].setVolume(compositionList[key].instrumentVolumeDefault.toDouble());
+      // });
+      for (var j in compositionAudioPlayersJustAudio) {
+        j.play();
+      }
+      for (var k in soundAudioPlayers) {
+        k.play();
+      }
+      // soundAudioPlayers.asMap().forEach((key, value) {
+      //   // var vl = soundAudioPlayers[key].volume;
+      //   // await soundAudioPlayers[key].setVolume(0);
+      //   soundAudioPlayers[key].play();
+      //   // soundAudioPlayers[key].setVolume(vl);
+      // });
+      playerStatusUseCase.call(PlayerStatus(
+          musicName: entity.musicName,
+          description: entity.musicDescription ?? "",
+          image: entity.smallImageUrl,
+          status: AudioStatus.playing));
+      playerStatus.value = AudioStatus.playing;
+      prettyPrint(msg: "RESUMING ALL PLAYERS");
+      FlutterForegroundTask.updateService(notificationTitle: entity.musicName);
     }
 
-    // showMediaNotification();
-
-    // compositionAudioPlayersJustAudio.asMap().forEach((key, value) {
-    //   // var vl = compositionAudioPlayersJustAudio[key].volume;
-    //   // await compositionAudioPlayersJustAudio[key].setVolume(0);
-    //   compositionAudioPlayersJustAudio[key].play();
-    //   // compositionAudioPlayersJustAudio[key].setVolume(compositionList[key].instrumentVolumeDefault.toDouble());
-    // });
-    for (var j in compositionAudioPlayersJustAudio) {
-      j.resume();
-    }
-    for (var k in soundAudioPlayers) {
-      k.resume();
-    }
-    // soundAudioPlayers.asMap().forEach((key, value) {
-    //   // var vl = soundAudioPlayers[key].volume;
-    //   // await soundAudioPlayers[key].setVolume(0);
-    //   soundAudioPlayers[key].play();
-    //   // soundAudioPlayers[key].setVolume(vl);
-    // });
-    playerStatusUseCase.call(PlayerStatus(
-        musicName: entity.musicName,
-        description: entity.musicDescription ?? "",
-        image: entity.smallImageUrl,
-        status: AudioStatus.playing));
-    playerStatus.value = AudioStatus.playing;
-    prettyPrint(msg: "RESUMING ALL PLAYERS");
     // bool success = await FlutterBackground.enableBackgroundExecution();
   }
 
   final cacheBox = Rxn<Box<StoreModel>>();
   final playerBox = Rxn<Box<PlayerStatus>>();
   final motionGifBox = Rxn<Box<MusicGifModel>>();
+
   final toogleBox = Rxn<Box<bool>>();
   final soundListingBox = Rxn<Box<SoundListingModel>>();
   disposePlayers() async {
-    // compositionAudioPlayersJustAudio.asMap().forEach((key, value) {
-    //   compositionAudioPlayersJustAudio[key].dispose();
-    // });
-
-    AssetsAudioPlayer.allPlayers().values.forEach((element) {
+    for (var element in compositionAudioPlayersJustAudio) {
+      element.dispose();
+    }
+    for (var element in soundAudioPlayers) {
+      element.dispose();
+    }
+    AssetsAudioPlayer.allPlayers().values.forEach((element) async {
       element.dispose();
     });
     _timer.value?.cancel();
@@ -798,6 +957,7 @@ class MusicDetailController extends GetxController {
   initCache() async {
     cacheBox.value =
         await hiveService.getBox<StoreModel>(boxName: AppBoxNames.cache_box);
+    update();
   }
 
   @override
@@ -812,6 +972,7 @@ class MusicDetailController extends GetxController {
         boxName: AppBoxNames.soundListingBox);
     cacheBox.value =
         await hiveService.getBox<StoreModel>(boxName: AppBoxNames.cache_box);
+    disposePlayers();
     getSoundListing();
     super.onInit();
   }
@@ -828,6 +989,7 @@ class MusicDetailController extends GetxController {
   @override
   void dispose() {
     stopAllPlayers();
+    FlutterForegroundTask.stopService();
     disposePlayers();
     super.dispose();
   }
@@ -848,11 +1010,14 @@ class MusicDetailController extends GetxController {
 
     _timer.value = Timer.periodic(
       oneSec,
-      (Timer timer) {
+      (Timer timer) async {
         if (start.value < 1) {
-          stopAllPlayers();
           timer.cancel();
+          await stopAllPlayers();
         } else {
+          FlutterForegroundTask.updateService(
+              notificationTitle: selectedMusic.value?.musicName,
+              notificationText: "");
           if (getToogleFader()) {
             prettyPrint(msg: "starting timer $fadeTime");
             if (start.value < 15) {
@@ -870,7 +1035,7 @@ class MusicDetailController extends GetxController {
     for (var player in compositionAudioPlayersJustAudio) {
       // var v = (player.volume / 5);
       // prettyPrint(msg: "decresing length $v");
-      player.setVolume(player.value * 0.75);
+      player.setVolume(player.volume.value * 0.75);
     }
     for (var player in soundAudioPlayers) {
       // var v = (player.volume / 5);
@@ -897,8 +1062,8 @@ class MusicDetailController extends GetxController {
 
     response.stream.map((s) {
       received += s.length;
-      debugPrint(
-          "${(received / length) * 100}  % ${entity.soundAudioUrl} file size : ${temFile.lengthSync()} ");
+      // debugPrint(
+      //     "${(received / length) * 100}  % ${entity.soundAudioUrl} file size : ${temFile.lengthSync()} ");
       double per = (received / length) * 100;
 
       if (per == 100) {

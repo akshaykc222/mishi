@@ -21,8 +21,7 @@ class MusicListBinding extends Bindings {
       // Get.lazyPut(() => MusicDetailControllerWeb(sl(), sl(), sl()),
       //     fenix: true);
     } else {
-      Get.lazyPut(() => MusicDetailController(sl(), sl(), sl(), sl(), sl()),
-          fenix: true);
+      Get.lazyPut(() => sl<MusicDetailController>(), fenix: true);
     }
   }
 }

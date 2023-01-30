@@ -27,4 +27,8 @@ class MusicListLocalDataSourceImpl extends MusicListLocalDataSource {
       box.add(data);
     }
   }
+
+  // Future<List<CompositionEntity>> getCompostions(){
+  //   var data=hiveService.getBox(boxName: boxName)
+  // }
 }

@@ -30,7 +30,6 @@ class _MiniPlayerState extends State<MiniPlayer>
   }
 
   bool hide = false;
-  String lastPlayed = "";
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<MusicDetailController>();
@@ -45,9 +44,7 @@ class _MiniPlayerState extends State<MiniPlayer>
                 if (item.first.status == AudioStatus.playing) {
                   WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
                     setState(() {
-                      if (lastPlayed != item.first.musicName) {
-                        hide = false;
-                      }
+                      hide = false;
                     });
                   });
                   iconAnimationController.forward();
@@ -55,9 +52,9 @@ class _MiniPlayerState extends State<MiniPlayer>
                   iconAnimationController.reverse();
                 }
               }
-              return hide
+              return item.isEmpty
                   ? Container()
-                  : item.isEmpty
+                  : hide
                       ? Container()
                       : Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 10.0),
@@ -170,7 +167,13 @@ class _MiniPlayerState extends State<MiniPlayer>
                                         shape: BoxShape.circle,
                                         color: Colors.white),
                                     child: controller.waitingPlayers.value
-                                        ? const SizedBox()
+                                        ? const SizedBox(
+                                            // width: 20,
+                                            // height: 20,
+                                            // child: CircularProgressIndicator(
+                                            //   color: AppColors.primaryColor,
+                                            // ),
+                                            )
                                         : Center(
                                             child: AnimatedIcon(
                                               icon: AnimatedIcons.play_pause,
@@ -185,9 +188,7 @@ class _MiniPlayerState extends State<MiniPlayer>
                                     onTap: () {
                                       setState(() {
                                         hide = true;
-                                        lastPlayed = item.first.musicName;
-                                        // controller.pauseAllPlayer(
-                                        //     controller.selectedMusic.value!);
+                                        controller.stopAllPlayers();
                                       });
                                     },
                                     child: const Icon(

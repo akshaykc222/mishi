@@ -2,6 +2,7 @@ import 'dart:isolate';
 import 'dart:math' as math;
 import 'dart:ui';
 
+import 'package:assets_audio_player/assets_audio_player.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,11 +18,11 @@ import 'package:mishi/mishi/presentation/utils/app_colors.dart';
 import 'package:mishi/mishi/presentation/utils/favourite_toggle_icon_widget.dart';
 import 'package:mishi/mishi/presentation/utils/pretty_print.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:wakelock/wakelock.dart';
 
 import '../../../core/hive_service.dart';
 import '../../data/app_remote_routes.dart';
-import '../../data/models/music_gif_model.dart';
 import '../../data/models/sound_listing_model.dart';
 import '../manager/controllers/music_detail_controller.dart';
 import '../utils/enums.dart';
@@ -82,15 +83,18 @@ class FirstTaskHandler extends TaskHandler {
 
 class MusicDetail extends StatefulWidget {
   final MusicEntity musicEntity;
-
-  const MusicDetail({Key? key, required this.musicEntity}) : super(key: key);
+  // final CategoriesEntity categoriesEntity;
+  const MusicDetail({
+    Key? key,
+    required this.musicEntity,
+  }) : super(key: key);
 
   @override
   State<MusicDetail> createState() => _MusicDetailState();
 }
 
 class _MusicDetailState extends State<MusicDetail>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController iconAnimationController;
   final controller = Get.find<MusicDetailController>();
   late String name;
@@ -99,6 +103,7 @@ class _MusicDetailState extends State<MusicDetail>
   late String smallImage;
   late MusicEntity entity;
   ReceivePort? _receivePort;
+  AppLifecycleState? state;
   getAudios() async {
     prettyPrint(msg: "getting audio");
     var hiveService = HiveService();
@@ -108,7 +113,7 @@ class _MusicDetailState extends State<MusicDetail>
       controller.getAllCompositions(
           widget.musicEntity.musicId, widget.musicEntity.musicName);
     } else if (t.values.first.musicName == widget.musicEntity.musicName) {
-      controller.changeListValues();
+      controller.changeListValues(widget.musicEntity.musicId);
     } else {
       controller.getAllCompositions(
           widget.musicEntity.musicId, widget.musicEntity.musicName);
@@ -118,7 +123,8 @@ class _MusicDetailState extends State<MusicDetail>
   @override
   void initState() {
     Wakelock.disable();
-
+    controller.changeExpandedMotionFalse();
+    controller.getAllMotion(widget.musicEntity.musicId);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
         overlays: [SystemUiOverlay.bottom]);
     // _initForegroundTask();
@@ -134,6 +140,7 @@ class _MusicDetailState extends State<MusicDetail>
     getAudios();
     controller.getTiming();
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
   }
 
   formatedTime({required int timeInSecond}) {
@@ -270,32 +277,22 @@ class _MusicDetailState extends State<MusicDetail>
         ));
   }
 
-  void _initForegroundTask() {
-    FlutterForegroundTask.init(
-      androidNotificationOptions: AndroidNotificationOptions(
-        channelId: 'notification_channel_id',
-        channelName: 'Foreground Notification',
-        channelDescription: 'Foreground service is running.',
-        channelImportance: NotificationChannelImportance.LOW,
-        priority: NotificationPriority.LOW,
-        iconData: const NotificationIconData(
-          resType: ResourceType.mipmap,
-          resPrefix: ResourcePrefix.ic,
-          name: 'launcher',
-        ),
-      ),
-      iosNotificationOptions: const IOSNotificationOptions(
-        showNotification: true,
-        playSound: false,
-      ),
-      foregroundTaskOptions: const ForegroundTaskOptions(
-        interval: 5000,
-        isOnceEvent: false,
-        autoRunOnBoot: false,
-        allowWakeLock: true,
-        allowWifiLock: true,
-      ),
-    );
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        state = AppLifecycleState.resumed;
+        break;
+      case AppLifecycleState.inactive:
+        state = AppLifecycleState.inactive;
+        break;
+      case AppLifecycleState.paused:
+        state = AppLifecycleState.paused;
+        break;
+      case AppLifecycleState.detached:
+        state = AppLifecycleState.detached;
+        break;
+    }
   }
 
   @override
@@ -306,13 +303,14 @@ class _MusicDetailState extends State<MusicDetail>
     // controller.disposePlayers();
     FlutterForegroundTask.stopService();
     super.dispose();
+    WidgetsBinding.instance.removeObserver(this);
   }
 
   @override
   Widget build(BuildContext context) {
     return WillStartForegroundTask(
       onWillStart: () async {
-        return true;
+        return AssetsAudioPlayer.allPlayers().values.isNotEmpty ? true : false;
       },
       androidNotificationOptions: AndroidNotificationOptions(
         channelId: 'notification_channel_id',
@@ -321,11 +319,11 @@ class _MusicDetailState extends State<MusicDetail>
             'This notification appears when the foreground service is running.',
         channelImportance: NotificationChannelImportance.LOW,
         priority: NotificationPriority.LOW,
-        isSticky: true,
         iconData: const NotificationIconData(
           resType: ResourceType.mipmap,
           resPrefix: ResourcePrefix.ic,
           name: 'launcher',
+          backgroundColor: AppColors.primaryColor,
         ),
       ),
       iosNotificationOptions: const IOSNotificationOptions(
@@ -338,7 +336,7 @@ class _MusicDetailState extends State<MusicDetail>
         allowWifiLock: false,
       ),
       notificationTitle: entity.musicName,
-      notificationText: entity.musicDescription,
+      notificationText: "",
       callback: startCallback,
       child: Scaffold(
         // backgroundColor: Colors.white12,
@@ -472,39 +470,86 @@ class _MusicDetailState extends State<MusicDetail>
                                                     if (items.isNotEmpty &&
                                                         items.first.musicName !=
                                                             entity.musicName) {
-                                                      return Container();
+                                                      return const SizedBox(
+                                                          width: 60);
+                                                    } else if (items.isEmpty) {
+                                                      return SizedBox(
+                                                          width: 60,
+                                                          child: Container(
+                                                              child: controller
+                                                                          .timingValue
+                                                                          .value ==
+                                                                      timingList
+                                                                          .first
+                                                                  ? Image.asset(
+                                                                      "assets/images/infinity.png",
+                                                                      fit: BoxFit
+                                                                          .contain,
+                                                                      width: 25,
+                                                                      height:
+                                                                          18,
+                                                                    )
+                                                                  : Text(
+                                                                      controller
+                                                                          .timingValue
+                                                                          .value
+                                                                          .replaceAll(
+                                                                              "mins",
+                                                                              ":00")
+                                                                          .replaceAll(
+                                                                              "\n",
+                                                                              "")
+                                                                          .replaceAll(
+                                                                              RegExp(r"\s+"),
+                                                                              '')
+                                                                          .trim(),
+                                                                      style: const TextStyle(
+                                                                          color:
+                                                                              Colors.white70),
+                                                                    )));
                                                     } else {
-                                                      return Obx(() =>
-                                                          controller
-                                                                  .waitingPlayers
-                                                                  .value
-                                                              ? const SizedBox()
-                                                              : SizedBox(
-                                                                  width: 60,
-                                                                  child: controller
-                                                                              .start
-                                                                              .value ==
-                                                                          0
-                                                                      ? Container(
-                                                                          child: controller.timingValue.value ==
-                                                                                  timingList
-                                                                                      .first
-                                                                              ? Image
-                                                                                  .asset(
-                                                                                  "assets/images/infinity.png",
-                                                                                  fit: BoxFit.contain,
-                                                                                  width: 25,
-                                                                                  height: 18,
-                                                                                )
-                                                                              : Text(
-                                                                                  controller.timingValue.value.replaceAll("mins", ":00").replaceAll("\n", "").replaceAll(RegExp(r"\s+"), '').trim(),
-                                                                                  style: const TextStyle(color: Colors.white70),
-                                                                                ))
-                                                                      : Text(
-                                                                          " ${formatedTime(timeInSecond: controller.start.value)}",
-                                                                          style:
-                                                                              const TextStyle(color: Colors.white70)),
-                                                                ));
+                                                      return items.first
+                                                                      .status ==
+                                                                  AudioStatus
+                                                                      .stop ||
+                                                              items.first
+                                                                      .status ==
+                                                                  AudioStatus
+                                                                      .canPlay ||
+                                                              items.first
+                                                                      .status ==
+                                                                  AudioStatus
+                                                                      .downloading
+                                                          ? const SizedBox(
+                                                              width: 60,
+                                                            )
+                                                          : Obx(() => SizedBox(
+                                                                width: 60,
+                                                                child: controller
+                                                                            .start
+                                                                            .value ==
+                                                                        0
+                                                                    ? Container(
+                                                                        child: controller.timingValue.value ==
+                                                                                timingList
+                                                                                    .first
+                                                                            ? Image
+                                                                                .asset(
+                                                                                "assets/images/infinity.png",
+                                                                                fit: BoxFit.contain,
+                                                                                width: 25,
+                                                                                height: 18,
+                                                                              )
+                                                                            : Text(
+                                                                                controller.timingValue.value.replaceAll("mins", ":00").replaceAll("\n", "").replaceAll(RegExp(r"\s+"), '').trim(),
+                                                                                style: const TextStyle(color: Colors.white70),
+                                                                              ))
+                                                                    : Text(
+                                                                        " ${formatedTime(timeInSecond: controller.start.value)}",
+                                                                        style: const TextStyle(
+                                                                            color:
+                                                                                Colors.white70)),
+                                                              ));
                                                     }
                                                   }),
                                               Padding(
@@ -934,15 +979,18 @@ class _MusicDetailState extends State<MusicDetail>
                                                                           .zero,
                                                                   physics:
                                                                       const NeverScrollableScrollPhysics(),
-                                                                  itemCount:
-                                                                      controller
-                                                                          .compositionList
-                                                                          .length,
+                                                                  itemCount: controller
+                                                                      .compositionList
+                                                                      .toSet()
+                                                                      .toList()
+                                                                      .length,
                                                                   itemBuilder: (BuildContext context, int index) => controller.compositionDataItem(
                                                                       index:
                                                                           index,
                                                                       model: controller
-                                                                              .compositionList[
+                                                                              .compositionList
+                                                                              .toSet()
+                                                                              .toList()[
                                                                           index],
                                                                       current: controller
                                                                               .selectedMusic
@@ -1152,15 +1200,14 @@ class _MusicDetailState extends State<MusicDetail>
                                   const EdgeInsets.symmetric(horizontal: 0.0),
                               child: Wrap(
                                 children: [
-                                  AnimatedContainer(
+                                  Container(
                                     padding: const EdgeInsets.only(left: 8),
                                     color: Colors.transparent,
                                     // decoration: BoxDecoration(
                                     //     color: Colors.white.withOpacity(0.2),
                                     //     borderRadius: const BorderRadius.all(
                                     //         Radius.circular(12))),
-                                    duration: const Duration(seconds: 1),
-                                    curve: Curves.fastLinearToSlowEaseIn,
+
                                     // height: controller.isExpandedComposition.value
                                     //     ? MediaQuery.of(context).size.height * 0.4
                                     //     : 50,
@@ -1252,32 +1299,24 @@ class _MusicDetailState extends State<MusicDetail>
                                                   child: Wrap(
                                                     // height: 300,
                                                     children: [
-                                                      ValueListenableBuilder(
-                                                          valueListenable:
-                                                              controller
-                                                                  .motionGifBox
-                                                                  .value!
-                                                                  .listenable(),
-                                                          builder: (context,
-                                                              Box<MusicGifModel>
-                                                                  data,
-                                                              widget) {
-                                                            var items = data
-                                                                .values
-                                                                .toList();
-                                                            prettyPrint(
-                                                                msg:
-                                                                    "items length ${items.length}");
-                                                            return Padding(
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                          .symmetric(
-                                                                      vertical:
-                                                                          15.0),
-                                                              child: SizedBox(
-                                                                width: double
-                                                                    .infinity,
-                                                                height: 150,
+                                                      Obx(() => controller
+                                                                  .motionResponse
+                                                                  .value
+                                                                  .status ==
+                                                              Status.LOADING
+                                                          ? SizedBox(
+                                                              width: double
+                                                                  .infinity,
+                                                              height: 150,
+                                                              child: Shimmer
+                                                                  .fromColors(
+                                                                baseColor: Colors
+                                                                    .grey
+                                                                    .shade300,
+                                                                highlightColor: AppColors
+                                                                    .primaryColor
+                                                                    .withOpacity(
+                                                                        0.4),
                                                                 child: ListView
                                                                     .builder(
                                                                   shrinkWrap:
@@ -1289,8 +1328,7 @@ class _MusicDetailState extends State<MusicDetail>
                                                                   padding: const EdgeInsets
                                                                           .only(
                                                                       left: 15),
-                                                                  itemCount: items
-                                                                      .length,
+                                                                  itemCount: 10,
                                                                   itemBuilder:
                                                                       (context,
                                                                               index) =>
@@ -1300,98 +1338,159 @@ class _MusicDetailState extends State<MusicDetail>
                                                                         horizontal:
                                                                             5.0),
                                                                     child:
-                                                                        InkWell(
-                                                                      onTap:
-                                                                          () async {
-                                                                        // if (await IsProUser()) {
-                                                                        prettyPrint(
-                                                                            msg:
-                                                                                "tapping");
-                                                                        var box =
-                                                                            await HiveService().getBox<PlayerStatus>(boxName: AppBoxNames.playerBox);
-                                                                        var data = box
-                                                                            .values
-                                                                            .toList();
-                                                                        prettyPrint(
-                                                                            msg:
-                                                                                "tapping length ${data.length}");
-                                                                        if (data
-                                                                            .isNotEmpty) {
-                                                                          if (data.first.status ==
-                                                                              AudioStatus.playing) {
-                                                                            if (items[index].musicId ==
-                                                                                "endOfFree") {
-                                                                              var offerings = await Purchases.getOfferings();
-                                                                              if (offerings.current != null) {
-                                                                                Get.to(() => PaymentScreen(
-                                                                                      entity: controller.selectedMusic.value!,
-                                                                                      offering: offerings.current!,
-                                                                                    ));
-                                                                              } else {
-                                                                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Somthing went wrong.")));
-                                                                              }
-                                                                            } else {
-                                                                              Get.to(MotionImageScreen(
-                                                                                videoUrl: items[index].mp4Url,
-                                                                              ));
-                                                                            }
-                                                                          } else {
-                                                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please play the audio to watch")));
-                                                                          }
-                                                                        } else {
-                                                                          prettyPrint(
-                                                                              msg: "this is wrking");
-                                                                          ScaffoldMessenger.of(context)
-                                                                              .showSnackBar(const SnackBar(content: Text("Please play the audio to watch")));
-                                                                          // Get.dialog(Column(
-                                                                          //   children: const [
-                                                                          //     Text(
-                                                                          //         "Please play th audio")
-                                                                          //   ],
-                                                                          // ));
-                                                                        }
-                                                                        // } else {
-                                                                        //   ScaffoldMessenger.of(context)
-                                                                        //       .showSnackBar(SnackBar(
-                                                                        //     content:
-                                                                        //         Text(
-                                                                        //       "Unlock this by upgrading plan.",
-                                                                        //     ),
-                                                                        //     action: SnackBarAction(
-                                                                        //         label: "Unlock",
-                                                                        //         onPressed: () {
-                                                                        //           Get.to(() => PaymentScreen(entity: entity));
-                                                                        //         }),
-                                                                        //   ));
-                                                                        // }
-                                                                      },
+                                                                        ClipRRect(
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                              15),
                                                                       child:
-                                                                          ClipRRect(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(15),
-                                                                        child:
-                                                                            Stack(
-                                                                          children: [
-                                                                            CachedNetworkImage(
-                                                                              imageUrl: items[index].thumbImage,
-                                                                              width: 100,
-                                                                              height: 150,
-                                                                              // placeholder: (context, string) =>
-                                                                              //     Image.asset(
-                                                                              //   "assets/images/place_holder.jpg",
-                                                                              //   fit: BoxFit.fill,
-                                                                              // ),
-                                                                              fit: BoxFit.fill,
-                                                                            )
-                                                                          ],
-                                                                        ),
+                                                                          Stack(
+                                                                        children: [
+                                                                          Container(
+                                                                            // imageUrl: controller.motionResponse.value.data![index].thumbImage,
+                                                                            width:
+                                                                                100,
+                                                                            height:
+                                                                                150,
+                                                                            color:
+                                                                                Colors.white,
+                                                                          )
+                                                                        ],
                                                                       ),
                                                                     ),
                                                                   ),
                                                                 ),
                                                               ),
-                                                            );
-                                                          }),
+                                                            )
+                                                          : controller
+                                                                      .motionResponse
+                                                                      .value
+                                                                      .status ==
+                                                                  Status.ERROR
+                                                              ? SizedBox(
+                                                                  width: MediaQuery.of(
+                                                                          context)
+                                                                      .size
+                                                                      .width,
+                                                                  height: 150,
+                                                                  child: Center(
+                                                                    child: ElevatedButton(
+                                                                        onPressed: () {
+                                                                          controller.getAllMotion(widget
+                                                                              .musicEntity
+                                                                              .musicId);
+                                                                        },
+                                                                        child: const Text("Reload")),
+                                                                  ),
+                                                                )
+                                                              : controller
+                                                                          .motionResponse
+                                                                          .value
+                                                                          .status ==
+                                                                      Status
+                                                                          .COMPLETED
+                                                                  ? SizedBox(
+                                                                      width: double
+                                                                          .infinity,
+                                                                      height:
+                                                                          150,
+                                                                      child: ListView
+                                                                          .builder(
+                                                                        shrinkWrap:
+                                                                            true,
+                                                                        physics:
+                                                                            const BouncingScrollPhysics(),
+                                                                        scrollDirection:
+                                                                            Axis.horizontal,
+                                                                        padding:
+                                                                            const EdgeInsets.only(left: 15),
+                                                                        itemCount: controller
+                                                                            .motionResponse
+                                                                            .value
+                                                                            .data
+                                                                            ?.length,
+                                                                        itemBuilder:
+                                                                            (context, index) =>
+                                                                                Padding(
+                                                                          padding:
+                                                                              const EdgeInsets.symmetric(horizontal: 5.0),
+                                                                          child:
+                                                                              InkWell(
+                                                                            onTap:
+                                                                                () async {
+                                                                              // if (await IsProUser()) {
+                                                                              prettyPrint(msg: "tapping");
+                                                                              var box = await HiveService().getBox<PlayerStatus>(boxName: AppBoxNames.playerBox);
+                                                                              var data = box.values.toList();
+                                                                              prettyPrint(msg: "tapping length ${data.length}");
+                                                                              if (data.isNotEmpty) {
+                                                                                if (data.first.status == AudioStatus.playing) {
+                                                                                  if (controller.motionResponse.value.data![index].musicId == "endOfFree") {
+                                                                                    var offerings = await Purchases.getOfferings();
+                                                                                    if (offerings.current != null) {
+                                                                                      Get.to(() => PaymentScreen(
+                                                                                            entity: controller.selectedMusic.value!,
+                                                                                            offering: offerings.current!,
+                                                                                          ));
+                                                                                    } else {
+                                                                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Somthing went wrong.")));
+                                                                                    }
+                                                                                  } else {
+                                                                                    Get.to(MotionImageScreen(
+                                                                                      videoUrl: controller.motionResponse.value.data![index].mp4Url,
+                                                                                    ));
+                                                                                  }
+                                                                                } else {
+                                                                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please play the audio to watch")));
+                                                                                }
+                                                                              } else {
+                                                                                prettyPrint(msg: "this is wrking");
+                                                                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please play the audio to watch")));
+                                                                                // Get.dialog(Column(
+                                                                                //   children: const [
+                                                                                //     Text(
+                                                                                //         "Please play th audio")
+                                                                                //   ],
+                                                                                // ));
+                                                                              }
+                                                                              // } else {
+                                                                              //   ScaffoldMessenger.of(context)
+                                                                              //       .showSnackBar(SnackBar(
+                                                                              //     content:
+                                                                              //         Text(
+                                                                              //       "Unlock this by upgrading plan.",
+                                                                              //     ),
+                                                                              //     action: SnackBarAction(
+                                                                              //         label: "Unlock",
+                                                                              //         onPressed: () {
+                                                                              //           Get.to(() => PaymentScreen(entity: entity));
+                                                                              //         }),
+                                                                              //   ));
+                                                                              // }
+                                                                            },
+                                                                            child:
+                                                                                ClipRRect(
+                                                                              borderRadius: BorderRadius.circular(15),
+                                                                              child: Stack(
+                                                                                children: [
+                                                                                  CachedNetworkImage(
+                                                                                    imageUrl: controller.motionResponse.value.data![index].thumbImage,
+                                                                                    width: 100,
+                                                                                    height: 150,
+                                                                                    // placeholder: (context, string) =>
+                                                                                    //     Image.asset(
+                                                                                    //   "assets/images/place_holder.jpg",
+                                                                                    //   fit: BoxFit.fill,
+                                                                                    // ),
+                                                                                    fit: BoxFit.fill,
+                                                                                  )
+                                                                                ],
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                    )
+                                                                  : SizedBox()),
                                                       const SizedBox(
                                                         height: 20,
                                                       )

@@ -10,12 +10,15 @@ import 'package:mishi/mishi/domain/entities/sound_listing_entity.dart';
 import 'package:mishi/mishi/domain/repositories/music_list_repository.dart';
 import 'package:mishi/mishi/presentation/utils/pretty_print.dart';
 
+import '../../../core/connection_checker.dart';
+
 class MusicListRepositoryImpl extends MusicListRepository {
-  // ConnectionChecker? connectionChecker;
+  ConnectionChecker connectionChecker;
   final MusicListRemoteDataSource dataSource;
   final MusicListLocalDataSource localDataSource;
 
   MusicListRepositoryImpl(
+    this.connectionChecker,
     this.dataSource,
     this.localDataSource,
   );

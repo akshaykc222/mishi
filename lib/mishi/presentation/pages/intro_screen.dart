@@ -149,7 +149,7 @@ class _IntroScreenState extends State<IntroScreen> {
                                                   .size
                                                   .height *
                                               0.35,
-                                          color: Colors.greenAccent,
+                                          color: Colors.white,
                                           child: CachedNetworkImage(
                                             imageUrl: item.image,
                                             progressIndicatorBuilder:
