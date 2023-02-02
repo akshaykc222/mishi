@@ -27,7 +27,7 @@ class CompositionEntity extends Equatable {
   int instrumentVolumeDefault;
   bool? dCompleted;
   final String musicId;
-  AudioStatus status = AudioStatus.downloading;
+  AudioStatus status = AudioStatus.stop;
 
   @override
   List<Object?> get props => [id, musicId];

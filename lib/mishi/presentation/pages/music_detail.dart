@@ -101,8 +101,8 @@ class _MusicDetailState extends State<MusicDetail>
   late String desc;
   late String image;
   late String smallImage;
+  // bool canGetMotion=true;
   late MusicEntity entity;
-  ReceivePort? _receivePort;
   AppLifecycleState? state;
   getAudios() async {
     prettyPrint(msg: "getting audio");
@@ -110,9 +110,11 @@ class _MusicDetailState extends State<MusicDetail>
     var t =
         await hiveService.getBox<PlayerStatus>(boxName: AppBoxNames.playerBox);
     if (t.values.isEmpty) {
+      // canGetMotion=true;
       controller.getAllCompositions(
           widget.musicEntity.musicId, widget.musicEntity.musicName);
     } else if (t.values.first.musicName == widget.musicEntity.musicName) {
+      // canGetMotion=true;
       controller.changeListValues(widget.musicEntity.musicId);
     } else {
       controller.getAllCompositions(
@@ -122,9 +124,10 @@ class _MusicDetailState extends State<MusicDetail>
 
   @override
   void initState() {
+    controller.getAllMotion(widget.musicEntity.musicId);
     Wakelock.disable();
     controller.changeExpandedMotionFalse();
-    controller.getAllMotion(widget.musicEntity.musicId);
+
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
         overlays: [SystemUiOverlay.bottom]);
     // _initForegroundTask();
@@ -1217,15 +1220,20 @@ class _MusicDetailState extends State<MusicDetail>
                                               ? MainAxisAlignment.start
                                               : MainAxisAlignment.center,
                                       children: [
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                              left: 20.0, right: 28),
-                                          child: InkWell(
-                                            highlightColor: Colors.transparent,
-                                            splashColor: Colors.transparent,
-                                            onTap: () {
-                                              controller.changeExpandedMotion();
-                                            },
+                                        InkWell(
+                                          highlightColor: Colors.transparent,
+                                          splashColor: Colors.transparent,
+                                          onTap: () {
+                                            controller.changeExpandedMotion();
+                                            // if (controller
+                                            //     .isExpandedMotion.value) {
+                                            //   controller.getAllMotion(
+                                            //       widget.musicEntity.musicId);
+                                            // }
+                                          },
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(
+                                                left: 20.0, right: 28),
                                             child: Container(
                                               height: 43,
                                               decoration: BoxDecoration(

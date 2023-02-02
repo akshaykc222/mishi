@@ -60,7 +60,7 @@ class MusicDetailController extends GetxController {
   changeSelectedMusic(MusicEntity entity) async {
     selectedMusic.value = entity;
     tempCompositionList.clear();
-    motionResponse.value = ResponseClassify.loading();
+    // motionResponse.value = ResponseClassify.loading();
     tempCompositionList.addAll(compositionList);
     await disposePlayers();
     if (_timer.value != null) {
@@ -174,10 +174,12 @@ class MusicDetailController extends GetxController {
       } else {
         final tempPath = await getApplicationDocumentsDirectory();
         final data = tempCompositionList
+            .toSet()
+            .toList()
             .where((element) => element.status == AudioStatus.canPlay);
         debugPrint(
             " downloaded status : ${data.length} out of ${tempCompositionList.length}");
-        if (data.length == tempCompositionList.length) {
+        if (data.length == tempCompositionList.toSet().toList().length) {
           waitingPlayers.value = false;
 
           // compositionAudioPlayers.addAll(List.generate(data.length, (index) {
@@ -607,10 +609,10 @@ class MusicDetailController extends GetxController {
     // compositionList.clear();
     // compositionList.addAll(compositionResponse.value.data ?? []);
 
-    tempCompositionList.forEach((element) async {
+    tempCompositionList.toSet().toList().forEach((element) async {
       var temFile = File("${tempDir.path}/${element.id}");
 
-      if (await temFile.exists()) {
+      if (await temFile.exists() && element.status != AudioStatus.downloading) {
         // playerStatusUseCase.call(PlayerStatus(musicName: selectedMusic.value?.musicName??"", description: selectedMusic.value?.musicDescription??"", image: selectedMusic.value?.smallImageUrl??"", status: AudioStatus.canPlay));
         element.status = AudioStatus.canPlay;
         tempCompositionList.refresh();
@@ -663,8 +665,12 @@ class MusicDetailController extends GetxController {
             debugPrint(
                 "${(received / length) * 100}  % ${entity.instrumentName} file size : ${temFile.lengthSync()} ");
             double per = (received / length) * 100;
-            if (per > 95) {
+            if (per > 40) {
               entity.status = AudioStatus.canPlay;
+
+              tempCompositionList.refresh();
+            } else {
+              entity.status = AudioStatus.downloading;
 
               tempCompositionList.refresh();
             }

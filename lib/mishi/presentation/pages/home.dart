@@ -350,7 +350,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       !loginController.checkLogin()
                           ? SizedBox(
                               height: 40,
-                              child: ListTile(
+                              child: CustomTile(
                                 onTap: () {
                                   if (musicController.selectedMusic.value !=
                                       null) {
@@ -400,7 +400,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               ),
                       SizedBox(
                         height: 40,
-                        child: ListTile(
+                        child: CustomTile(
                           onTap: () async {
                             Get.toNamed(AppPages.profile);
 
@@ -421,7 +421,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ),
                       SizedBox(
                         height: 40,
-                        child: ListTile(
+                        child: CustomTile(
                           onTap: () async {
                             Get.toNamed(AppPages.clear_chache);
 
@@ -461,7 +461,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       // ),
                       SizedBox(
                         height: 40,
-                        child: ListTile(
+                        child: CustomTile(
                           onTap: () async {
                             final InAppReview inAppReview =
                                 InAppReview.instance;
@@ -490,7 +490,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ),
                       SizedBox(
                         height: 40,
-                        child: ListTile(
+                        child: CustomTile(
                           onTap: () {
                             Get.to(
                                 () => const IntroScreen(
@@ -512,7 +512,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                       ),
                       const SizedBox(
-                        height: 15,
+                        height: 5,
                       ),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -550,7 +550,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                           itemBuilder: (context, index) =>
                                               SizedBox(
                                                 height: 40,
-                                                child: ListTile(
+                                                child: CustomTile(
                                                   onTap: () => Get.to(() =>
                                                       WebViewCustom(
                                                           url: controller

@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:mishi/mishi/presentation/routes/app_pages.dart';
@@ -80,4 +82,26 @@ addProUser() {
   }, onError: (Object error) {
     // handle error here.
   });
+}
+
+class CustomTile extends StatelessWidget {
+  final Widget title;
+  final Function onTap;
+  const CustomTile({Key? key, required this.title, required this.onTap})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => onTap(),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 15.0),
+        child: Row(
+          children: [
+            title,
+          ],
+        ),
+      ),
+    );
+  }
 }

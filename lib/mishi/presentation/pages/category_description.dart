@@ -295,7 +295,7 @@ class CategoryDescription extends StatelessWidget {
                     !loginController.checkLogin()
                         ? SizedBox(
                             height: 40,
-                            child: ListTile(
+                            child: CustomTile(
                               onTap: () {
                                 if (musicController.selectedMusic.value !=
                                     null) {
@@ -345,7 +345,7 @@ class CategoryDescription extends StatelessWidget {
                             ),
                     SizedBox(
                       height: 40,
-                      child: ListTile(
+                      child: CustomTile(
                         onTap: () async {
                           Get.toNamed(AppPages.profile);
 
@@ -366,7 +366,7 @@ class CategoryDescription extends StatelessWidget {
                     ),
                     SizedBox(
                       height: 40,
-                      child: ListTile(
+                      child: CustomTile(
                         onTap: () async {
                           Get.toNamed(AppPages.clear_chache);
 
@@ -406,7 +406,7 @@ class CategoryDescription extends StatelessWidget {
                     // ),
                     SizedBox(
                       height: 40,
-                      child: ListTile(
+                      child: CustomTile(
                         onTap: () async {
                           final InAppReview inAppReview = InAppReview.instance;
 
@@ -434,7 +434,7 @@ class CategoryDescription extends StatelessWidget {
                     ),
                     SizedBox(
                       height: 40,
-                      child: ListTile(
+                      child: CustomTile(
                         onTap: () {
                           Get.to(
                               () => const IntroScreen(
@@ -456,7 +456,7 @@ class CategoryDescription extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(
-                      height: 15,
+                      height: 5,
                     ),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -477,33 +477,45 @@ class CategoryDescription extends StatelessWidget {
                               MediaQuery.removePadding(
                                 context: context,
                                 removeTop: true,
-                                child: ListView.builder(
-                                    shrinkWrap: true,
-                                    padding: EdgeInsets.zero,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    itemCount: controller
-                                        .staticPagesResponse.value.data?.length,
-                                    itemBuilder: (context, index) => SizedBox(
-                                          height: 40,
-                                          child: ListTile(
-                                            onTap: () => Get.to(() =>
-                                                WebViewCustom(
-                                                    url: controller
-                                                        .staticPagesResponse
-                                                        .value
-                                                        .data![index]
-                                                        .pageUrl)),
-                                            title: Text(
-                                              controller.staticPagesResponse
-                                                  .value.data![index].pageTitle,
-                                              style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.w400,
-                                                  fontSize: 14),
-                                            ),
-                                          ),
-                                        )),
+                                child: controller
+                                            .staticPagesResponse.value.data ==
+                                        null
+                                    ? const SizedBox()
+                                    : ListView.builder(
+                                        shrinkWrap: true,
+                                        padding: EdgeInsets.zero,
+                                        physics:
+                                            const NeverScrollableScrollPhysics(),
+                                        itemCount: controller
+                                            .staticPagesResponse
+                                            .value
+                                            .data
+                                            ?.length,
+                                        itemBuilder: (context, index) =>
+                                            SizedBox(
+                                              height: 40,
+                                              child: CustomTile(
+                                                onTap: () => Get.to(() =>
+                                                    WebViewCustom(
+                                                        url: controller
+                                                            .staticPagesResponse
+                                                            .value
+                                                            .data![index]
+                                                            .pageUrl)),
+                                                title: Text(
+                                                  controller
+                                                      .staticPagesResponse
+                                                      .value
+                                                      .data![index]
+                                                      .pageTitle,
+                                                  style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.w400,
+                                                      fontSize: 14),
+                                                ),
+                                              ),
+                                            )),
                               ),
                               const SizedBox(
                                 height: 10,
